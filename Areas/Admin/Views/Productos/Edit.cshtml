@@ -1,0 +1,115 @@
+﻿@model GraciaDivina.Models.ViewModels.AdminProductVM
+@{
+    ViewData["Title"] = "Editar producto";
+}
+<h1 class="h4 mb-3">Editar producto</h1>
+
+@if (TempData["Msg"] != null)
+{
+    <div class="alert alert-success">@TempData["Msg"]</div>
+}
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data" class="row g-3">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ProductoID" />
+
+    <div class="col-12 col-md-8">
+        <label asp-for="Nombre" class="form-label"></label>
+        <input asp-for="Nombre" class="form-control" />
+        <span class="text-danger" asp-validation-for="Nombre"></span>
+    </div>
+    <div class="col-12 col-md-4">
+        <label asp-for="Precio" class="form-label"></label>
+        <input asp-for="Precio" class="form-control" />
+        <span class="text-danger" asp-validation-for="Precio"></span>
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label">Categoría</label>
+        <select asp-for="CategoriaID" class="form-select" asp-items="ViewBag.Categorias">
+            <option value="">(Sin categoría)</option>
+        </select>
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label d-block">Activo</label>
+        <input asp-for="Activo" class="form-check-input" type="checkbox" />
+    </div>
+    <div class="col-12">
+        <label asp-for="Descripcion" class="form-label"></label>
+        <textarea asp-for="Descripcion" rows="4" class="form-control"></textarea>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <label class="form-label">Reemplazar imagen (opcional)</label>
+        <input asp-for="Imagen" type="file" class="form-control" />
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label d-block">Actual</label>
+        <img src="@(string.IsNullOrEmpty(Model.ImagenUrl) ? Url.Content("~/img/placeholder.svg") : Model.ImagenUrl)"
+             style="width:160px;height:120px;object-fit:cover;border-radius:.25rem;" />
+    </div>
+
+    <div class="col-12">
+        <button class="btn btn-primary">Guardar</button>
+        <a class="btn btn-secondary" asp-action="Index">Volver</a>
+    </div>
+</form>
+<hr class="my-4" />
+<h5>Imágenes</h5>
+
+<!-- Subir UNA o VARIAS imágenes nuevas -->
+<form asp-action="UploadImages" method="post" enctype="multipart/form-data" class="row g-2">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@Model.ProductoID" />
+
+    <div class="col-12 col-md-8">
+        <input class="form-control" type="file" name="imagenes" multiple />
+        <small class="text-muted">JPG/PNG/WebP, máx 3MB c/u</small>
+    </div>
+    <div class="col-12 col-md-4 text-md-end">
+        <button class="btn btn-outline-primary">Subir</button>
+    </div>
+</form>
+
+<!-- Galería existente (miniaturas) -->
+@{
+    var imgs = ViewBag.Imagenes as IEnumerable<GraciaDivina.Models.ProductoImagen>;
+}
+@if (imgs != null && imgs.Any())
+{
+    <div class="row g-3 mt-2">
+        @foreach (var f in imgs)
+        {
+            <div class="col-6 col-md-3">
+                <div class="border rounded p-2 text-center">
+                    <img src="@f.UrlImagen" class="img-fluid" style="max-height:140px;object-fit:contain;" />
+                    <div class="mt-2 d-flex gap-2 justify-content-center">
+                        @if (f.EsPrincipal)
+                        {
+                            <span class="badge bg-success align-self-center">Principal</span>
+                        }
+                        else
+                        {
+                            <form asp-action="SetPrincipal" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.ProductoID" />
+                                <input type="hidden" name="imagenId" value="@f.ImagenID" />
+                                <button class="btn btn-sm btn-outline-success">Hacer principal</button>
+                            </form>
+                        }
+
+                        <form asp-action="DeleteImage" method="post" class="d-inline" onsubmit="return confirm('¿Eliminar imagen?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.ProductoID" />
+                            <input type="hidden" name="imagenId" value="@f.ImagenID" />
+                            <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

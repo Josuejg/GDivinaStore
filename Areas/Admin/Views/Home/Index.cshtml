@@ -1,0 +1,18 @@
+﻿@{ ViewData["Title"] = "Panel de administración"; }
+<h2>Panel de administración</h2>
+<button type="button" class="btn btn-outline-primary btn-sm"
+        onclick="location.href='@Url.Action("Index", "Home", new { area = "" })'">
+    ← Volver  a la tienda
+</button>
+
+
+<ul>
+    <li><a asp-area="Admin" asp-controller="Categorias" asp-action="Index">Categorías</a></li>
+    <!-- Luego: Productos, Variantes, Pedidos, etc. -->
+    <li><a asp-area="Admin" asp-controller="Auth" asp-action="ChangePassword">Cambiar contraseña</a></li>
+    <li><a asp-area="Admin" asp-controller="Productos" asp-action="Index">Productos</a></li>
+</ul>
+@if (TempData["Msg"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Msg"]</div>
+}

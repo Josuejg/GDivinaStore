@@ -1,0 +1,12 @@
+﻿
+@* Views/Shared/_MiniCart.cshtml *@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasCart" aria-labelledby="offcanvasCartLabel">
+    <div class="offcanvas-header">
+        <h5 id="offcanvasCartLabel">Tu carrito</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body">
+        <p class="text-muted">Aún no has agregado productos.</p>
+        <a class="btn btn-primary w-100" asp-controller="Carrito" asp-action="Index">Ver carrito</a>
+    </div>
+</div>

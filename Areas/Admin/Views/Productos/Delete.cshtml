@@ -1,0 +1,16 @@
+﻿@model GraciaDivina.Models.ViewModels.AdminProductVM
+@{
+    ViewData["Title"] = "Desactivar producto";
+}
+<h1 class="h5 mb-3">Desactivar producto</h1>
+
+<div class="alert alert-warning">
+    ¿Seguro que deseas desactivar <strong>@Model.Nombre</strong>?
+</div>
+
+<form asp-action="Delete" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ProductoID" />
+    <button class="btn btn-danger">Sí, desactivar</button>
+    <a class="btn btn-secondary" asp-action="Index">Cancelar</a>
+</form>

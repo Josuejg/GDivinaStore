@@ -1,0 +1,12 @@
+﻿@model IEnumerable<GraciaDivina.Models.Categoria>
+
+@foreach (var c in Model)
+{
+    <li>
+        <a class="dropdown-item"
+           asp-controller="Catalogo" asp-action="Index"
+           asp-route-categoriaId="@c.CategoriaID">
+            @c.Nombre
+        </a>
+    </li>
+}

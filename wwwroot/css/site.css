@@ -1,0 +1,59 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+.product-card img {
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.product-card .card-title {
+    min-height: 1.5em;
+}
+/* Tarjeta de producto: contenedor de imagen con ajuste y hover */
+.product-card .product-thumb {
+    position: relative;
+    height: 220px; /* alto base móvil */
+    background: #f5f6f8;
+    border-radius: .5rem .5rem 0 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (min-width: 768px) {
+    .product-card .product-thumb {
+        height: 260px;
+    }
+    /* tablets/escritorio */
+}
+
+.product-card .product-thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* NO recorta; se ajusta al “marco” */
+    transition: transform .25s ease;
+}
+
+.product-card:hover .product-thumb img {
+    transform: scale(1.05); /* “hover” suave */
+}

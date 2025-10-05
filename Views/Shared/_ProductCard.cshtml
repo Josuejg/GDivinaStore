@@ -1,0 +1,28 @@
+﻿@model GraciaDivina.Models.ViewModels.ProductCardVM
+
+<div class="card product-card h-100">
+    <a asp-controller="Producto" asp-action="Details" asp-route-id="@Model.ProductoID" class="text-decoration-none text-dark">
+        <div class="product-thumb">
+            <img src="@(string.IsNullOrEmpty(Model.ImagenUrl) ? Url.Content("~/img/placeholder.svg") : Model.ImagenUrl)"
+                 alt="@Model.Nombre" loading="lazy" />
+        </div>
+
+        <div class="card-body">
+            <h6 class="card-title text-truncate">@Model.Nombre</h6>
+            <div class="fw-bold">@Model.Precio.ToString("C")</div>
+
+            @if (!string.IsNullOrEmpty(Model.Badge))
+            {
+                <span class="badge rounded-pill bg-warning text-dark">@Model.Badge</span>
+            }
+        </div>
+    </a>
+
+    <div class="card-footer bg-transparent border-0 pb-3 pt-0">
+        <a class="btn btn-sm btn-primary w-100"
+           asp-controller="Producto" asp-action="Details" asp-route-id="@Model.ProductoID">
+            Ver
+        </a>
+
+    </div>
+</div>

@@ -1,0 +1,22 @@
+﻿@model IEnumerable<GraciaDivina.Models.ViewModels.ProductCardVM>
+@{
+    ViewData["Title"] = "Catálogo";
+    var catNombre = ViewData["CategoriaNombre"] as string ?? "Todas";
+}
+<h1 class="h4 mb-3">Categoría: @catNombre</h1>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">Aún no hay productos en esta categoría.</div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var p in Model)
+        {
+            <div class="col-6 col-md-4 col-lg-3">
+                @await Html.PartialAsync("_ProductCard", p)
+            </div>
+        }
+    </div>
+}

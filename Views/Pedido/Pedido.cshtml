@@ -1,0 +1,47 @@
+﻿@{
+    var h = (dynamic)ViewData["Header"]!;
+    ViewData["Title"] = $"Pedido #{h.PedidoID}";
+}
+<h1 class="h4">Pedido #@h.PedidoID</h1>
+<p class="text-muted">Fecha: @h.Fecha · Estado: @h.Estado</p>
+
+<table class="table">
+    <thead>
+        <tr><th>Producto</th><th>Cant.</th><th class="text-end">Precio</th><th class="text-end">Subtotal</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var d in Model)
+        {
+            <tr>
+                <td>@d.Producto <small class="text-muted">(@d.SKU @((d.Talla != null ? "· " + d.Talla : "")) @((d.Color != null ? "· " + d.Color : "")))</small></td>
+                <td>@d.Cantidad</td>
+                <td class="text-end">@d.PrecioUnitario.ToString("C")</td>
+                <td class="text-end">@d.Subtotal.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="d-flex justify-content-between">
+    <div>
+        <div><strong>@h.Nombre</strong></div>
+        <div>Tel: @h.Telefono</div>
+        @if (h.Direccion != null)
+        {
+            <div>@h.Direccion</div>
+        }
+        @if (h.Email != null)
+        {
+            <div>@h.Email</div>
+        }
+    </div>
+    <div class="fs-5">Total: <strong>@h.Total.ToString("C")</strong></div>
+</div>
+
+<hr />
+<a class="btn btn-success"
+   href="https://wa.me/###########?text=@Uri.EscapeDataString($"Hola, soy {h.Nombre}. Pedido #{h.PedidoID} por {h.Total:C}.")"
+   target="_blank" rel="noopener">
+    Enviar por WhatsApp
+</a>
+<a class="btn btn-secondary" asp-controller="Home" asp-action="Index">Seguir comprando</a>
