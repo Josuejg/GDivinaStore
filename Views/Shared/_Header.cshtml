@@ -1,57 +1,57 @@
-﻿@* Encabezado limpio con menú y dropdown de categorías *@
-<header class="border-bottom mb-4">
-    <nav class="navbar navbar-expand-lg bg-white">
+﻿<header class="border-bottom mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+            <!-- LOGO -->
+            <a class="navbar-brand p-0 me-2" asp-controller="Home" asp-action="Index">
                 <img src="~/img/logo-gd.png" alt="Gracia Divina" class="brand-logo" />
             </a>
 
-
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <!-- TOGGLER (móvil) -->
+            <button class="navbar-toggler" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#mainNav"
+                    aria-controls="mainNav" aria-expanded="false" aria-label="Menú">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
+            <!-- CONTENIDO COLAPSABLE -->
             <div class="collapse navbar-collapse" id="mainNav">
+                <!-- links izquierda -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link" asp-controller="Home" asp-action="Index">Inicio</a>
                     </li>
 
-                    @* Dropdown de categorías *@
+                    <!-- Categorías -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="catDrop" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="catDrop" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Categorías
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="catDrop">
-                            <li>
-                                <a class="dropdown-item" asp-controller="Catalogo" asp-action="Index">Ver todo</a>
-                            </li>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="catDrop">
+                            <li><a class="dropdown-item" asp-controller="Catalogo" asp-action="Index">Ver todo</a></li>
                             <li><hr class="dropdown-divider" /></li>
-                            @await Component.InvokeAsync("CategoriasMenu")  @* ← solo los <li> de categorías *@
+                            @await Component.InvokeAsync("CategoriasMenu") @* solo <li> *@
                         </ul>
                     </li>
-
 
                     <li class="nav-item">
                         <a class="nav-link" asp-controller="Catalogo" asp-action="Index">Ver todo</a>
                     </li>
                 </ul>
 
-                <div class="d-flex align-items-center gap-2">
-                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Carrito" asp-action="Index">
+                <!-- acciones derecha -->
+                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end action-bar">
+                    <a class="btn btn-outline-light btn-sm" asp-controller="Carrito" asp-action="Index">
                         <span class="me-1">🛒</span><span id="miniCartCount">0</span>
                     </a>
                     <a class="btn btn-success btn-sm" href="https://wa.me/###########" target="_blank" rel="noopener">WhatsApp</a>
 
-                    @* Enlace Admin; sin botón de cerrar sesión como pediste *@
                     @if (User?.Identity?.IsAuthenticated == true)
                     {
-                        <a class="btn btn-dark btn-sm" asp-area="Admin" asp-controller="Home" asp-action="Index">Admin</a>
+                        <a class="btn btn-light btn-sm" asp-area="Admin" asp-controller="Home" asp-action="Index">Admin</a>
                     }
                     else
                     {
-                        <a class="btn btn-outline-dark btn-sm" asp-area="Admin" asp-controller="Auth" asp-action="Login">Admin</a>
+                        <a class="btn btn-outline-light btn-sm" asp-area="Admin" asp-controller="Auth" asp-action="Login">Admin</a>
                     }
                 </div>
             </div>

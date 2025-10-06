@@ -1,34 +1,58 @@
-﻿html {
-  font-size: 14px;
+﻿/* ========= Header (navbar) ========= */
+
+/* Logo responsivo (escala entre 36 y 72px por defecto) */
+.navbar-brand .brand-logo {
+    height: clamp(36px, 6vw, 72px);
+    width: auto;
+    object-fit: contain;
+    display: block;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+/* Alineación del logo con la barra */
+.navbar-brand {
+    padding-top: .25rem;
+    padding-bottom: .25rem;
+    display: flex;
+    align-items: center;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+/* Botonera derecha (carrito/WhatsApp/Admin) permite salto de línea sin romper */
+.action-bar {
+    row-gap: .4rem; /* espacio vertical cuando el contenido envuelve */
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+/* Compactar paddings en móviles para que quepa todo */
+@media (max-width: 575.98px) {
+    .navbar .nav-link {
+        padding: .375rem .5rem;
+    }
+
+    .navbar .btn {
+        padding: .375rem .5rem;
+        font-size: .875rem;
+    }
 }
 
-body {
-  margin-bottom: 60px;
-}
-.product-card img {
-    aspect-ratio: 4 / 3;
-    object-fit: cover;
+/* Más grande en pantallas grandes (full screen) */
+@media (min-width: 1200px) { /* ≥ XL */
+    .navbar-brand .brand-logo {
+        height: 80px;
+    }
 }
 
-.product-card .card-title {
-    min-height: 1.5em;
+@media (min-width: 1600px) { /* monitores muy anchos (2K+) */
+    .navbar-brand .brand-logo {
+        height: 96px;
+    }
 }
-/* Tarjeta de producto: contenedor de imagen con ajuste y hover */
+
+/* Opcional: borde del dropdown en tema oscuro (mejor integración visual) */
+.navbar-dark .dropdown-menu {
+    border-color: rgba(255,255,255,.15);
+}
+
+/* ========= Tarjeta de producto (imagen + hover) ========= */
+
 .product-card .product-thumb {
     position: relative;
     height: 220px; /* alto base móvil */
@@ -40,47 +64,27 @@ body {
     justify-content: center;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) { /* tablet / escritorio */
     .product-card .product-thumb {
         height: 260px;
     }
-    /* tablets/escritorio */
 }
 
+/* La imagen se ajusta sin recortar, con zoom suave al hover */
 .product-card .product-thumb img {
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain; /* NO recorta; se ajusta al “marco” */
+    object-fit: contain;
     transition: transform .25s ease;
 }
 
 .product-card:hover .product-thumb img {
-    transform: scale(1.05); /* “hover” suave */
-}
-/* Tamaño del logo en la barra superior */
-.navbar-brand {
-    padding-top: .25rem; /* quita compresión vertical */
-    padding-bottom: .25rem;
-    display: flex;
-    align-items: center;
+    transform: scale(1.05);
 }
 
-    .navbar-brand .brand-logo {
-        height: 50px; /* ↑ ajusta aquí el tamaño principal */
-        width:100PX
-    }
-
-/* Escala un poco más en pantallas grandes */
-@media (min-width: 992px) {
-    .navbar-brand .brand-logo {
-        height: 64px;
-    }
-    /* escritorio */
-}
-
-/* En móviles, un poco menos para que no empuje el menú */
-@media (max-width: 575.98px) {
-    .navbar-brand .brand-logo {
-        height: 48px;
-    }
+/* Título en una línea con elipsis */
+.product-card .card-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
