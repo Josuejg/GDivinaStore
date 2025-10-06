@@ -1,4 +1,4 @@
-html {
+﻿html {
   font-size: 14px;
 }
 
@@ -31,7 +31,7 @@ body {
 /* Tarjeta de producto: contenedor de imagen con ajuste y hover */
 .product-card .product-thumb {
     position: relative;
-    height: 220px; /* alto base m�vil */
+    height: 220px; /* alto base móvil */
     background: #f5f6f8;
     border-radius: .5rem .5rem 0 0;
     overflow: hidden;
@@ -50,10 +50,37 @@ body {
 .product-card .product-thumb img {
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain; /* NO recorta; se ajusta al �marco� */
+    object-fit: contain; /* NO recorta; se ajusta al “marco” */
     transition: transform .25s ease;
 }
 
 .product-card:hover .product-thumb img {
-    transform: scale(1.05); /* �hover� suave */
+    transform: scale(1.05); /* “hover” suave */
+}
+/* Tamaño del logo en la barra superior */
+.navbar-brand {
+    padding-top: .25rem; /* quita compresión vertical */
+    padding-bottom: .25rem;
+    display: flex;
+    align-items: center;
+}
+
+    .navbar-brand .brand-logo {
+        height: 50px; /* ↑ ajusta aquí el tamaño principal */
+        width:100PX
+    }
+
+/* Escala un poco más en pantallas grandes */
+@media (min-width: 992px) {
+    .navbar-brand .brand-logo {
+        height: 64px;
+    }
+    /* escritorio */
+}
+
+/* En móviles, un poco menos para que no empuje el menú */
+@media (max-width: 575.98px) {
+    .navbar-brand .brand-logo {
+        height: 48px;
+    }
 }
