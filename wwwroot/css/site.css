@@ -1,14 +1,16 @@
-﻿/* ========= Header (navbar) ========= */
+﻿/* ===========================
+   HEADER / NAVBAR (2 NIVELES)
+   =========================== */
 
-/* Logo responsivo (escala entre 36 y 72px por defecto) */
+/* Logo responsivo (base 72px; crece en XL y 2K) */
 .navbar-brand .brand-logo {
-    height: clamp(36px, 6vw, 72px);
+    height: clamp(72px, 6vw, 72px);
     width: auto;
     object-fit: contain;
     display: block;
 }
 
-/* Alineación del logo con la barra */
+/* Alineación vertical del logo */
 .navbar-brand {
     padding-top: .25rem;
     padding-bottom: .25rem;
@@ -16,12 +18,26 @@
     align-items: center;
 }
 
-/* Botonera derecha (carrito/WhatsApp/Admin) permite salto de línea sin romper */
+/* Acciones de la derecha: permiten salto en móvil si es necesario */
 .action-bar {
-    row-gap: .4rem; /* espacio vertical cuando el contenido envuelve */
+    row-gap: .4rem;
 }
 
-/* Compactar paddings en móviles para que quepa todo */
+/* Buscador ancho y cómodo (si usas .gd-search alrededor del input) */
+.gd-search {
+    min-width: 260px;
+}
+
+    .gd-search .form-control {
+        font-size: 1rem;
+    }
+
+    .gd-search .input-group-lg .form-control {
+        padding-top: .6rem;
+        padding-bottom: .6rem;
+    }
+
+/* Compactar paddings en móviles */
 @media (max-width: 575.98px) {
     .navbar .nav-link {
         padding: .375rem .5rem;
@@ -33,25 +49,102 @@
     }
 }
 
-/* Más grande en pantallas grandes (full screen) */
-@media (min-width: 1200px) { /* ≥ XL */
+/* Logo más alto en pantallas grandes */
+@media (min-width: 1200px) {
     .navbar-brand .brand-logo {
         height: 80px;
     }
 }
 
-@media (min-width: 1600px) { /* monitores muy anchos (2K+) */
+@media (min-width: 1600px) {
     .navbar-brand .brand-logo {
         height: 96px;
     }
 }
 
-/* Opcional: borde del dropdown en tema oscuro (mejor integración visual) */
+/* Integración visual del dropdown en navbar oscuro */
 .navbar-dark .dropdown-menu {
     border-color: rgba(255,255,255,.15);
 }
 
-/* ========= Tarjeta de producto (imagen + hover) ========= */
+/* ===========================
+   BARRA DE CATEGORÍAS (NIVEL 2)
+   =========================== */
+
+/* Contenedor de la barra (no mostrar "ascensor" lateral) */
+.gd-catnav {
+    overflow: visible; /* Evita scroll externo */
+    gap: .5rem;
+}
+
+    /* Estilo de los links en la barra de categorías */
+    .gd-catnav .nav-link {
+        white-space: nowrap;
+        color: #fff;
+        opacity: .8;
+    }
+
+        .gd-catnav .nav-link:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+/* Dropdown de categorías: si hay muchas, scroll interno */
+.gd-cat-list {
+    min-width: 280px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Apariencia del dropdown oscuro */
+.dropdown-menu-dark .dropdown-item {
+    color: #fff;
+}
+
+    .dropdown-menu-dark .dropdown-item:hover {
+        background: rgba(255,255,255,.08);
+        color: #fff;
+    }
+
+/* Pestañas inline de categorías (accesos rápidos) */
+.gd-cat-inline {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .25rem;
+    overflow-x: auto; /* scroll horizontal suave si no caben */
+    scrollbar-width: thin; /* Firefox */
+}
+
+    .gd-cat-inline::-webkit-scrollbar {
+        height: 6px;
+    }
+    /* WebKit */
+    .gd-cat-inline::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 4px;
+    }
+
+    .gd-cat-inline::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+/* Marca de pestaña activa */
+.gd-catnav .nav-link.active {
+    opacity: 1 !important;
+    font-weight: 600;
+    border-bottom: 2px solid #fff;
+}
+
+/* En pantallas chicas mostramos solo el dropdown; ocultamos pestañas inline */
+@media (max-width: 767.98px) {
+    .gd-cat-inline {
+        display: none;
+    }
+}
+
+/* ===========================
+   TARJETAS DE PRODUCTO (OPCIONAL)
+   =========================== */
 
 .product-card .product-thumb {
     position: relative;
@@ -64,17 +157,16 @@
     justify-content: center;
 }
 
-@media (min-width: 768px) { /* tablet / escritorio */
+@media (min-width:768px) {
     .product-card .product-thumb {
         height: 260px;
     }
 }
 
-/* La imagen se ajusta sin recortar, con zoom suave al hover */
 .product-card .product-thumb img {
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain;
+    object-fit: contain; /* ajusta sin recortar */
     transition: transform .25s ease;
 }
 
@@ -82,7 +174,6 @@
     transform: scale(1.05);
 }
 
-/* Título en una línea con elipsis */
 .product-card .card-title {
     white-space: nowrap;
     overflow: hidden;

@@ -1,44 +1,33 @@
-﻿<header class="border-bottom mb-4">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+﻿@* Header de 2 niveles: topbar (logo + search + acciones) y catbar (categorías) *@
+<header class="gd-header border-bottom mb-4">
+
+    <!-- TOPBAR -->
+    <nav class="gd-topbar navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <!-- LOGO -->
-            <a class="navbar-brand p-0 me-2" asp-controller="Home" asp-action="Index">
+            <!-- Logo -->
+            <a class="navbar-brand p-0 me-3" asp-controller="Home" asp-action="Index">
                 <img src="~/img/logo-gd.png" alt="Gracia Divina" class="brand-logo" />
             </a>
 
-            <!-- TOGGLER (móvil) -->
+            <!-- Toggler móvil -->
             <button class="navbar-toggler" type="button"
                     data-bs-toggle="collapse" data-bs-target="#mainNav"
                     aria-controls="mainNav" aria-expanded="false" aria-label="Menú">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <!-- CONTENIDO COLAPSABLE -->
             <div class="collapse navbar-collapse" id="mainNav">
-                <!-- links izquierda -->
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Home" asp-action="Index">Inicio</a>
-                    </li>
+                <!-- Buscador centrado -->
+                <div class="gd-search flex-grow-1 mx-lg-3 my-2 my-lg-0">
+                    <form asp-controller="Catalogo" asp-action="Index" method="get">
+                        <div class="input-group input-group-lg">
+                            <input name="q" class="form-control" placeholder="Buscar por artículo" />
+                            <button class="btn btn-primary" type="submit">🔍</button>
+                        </div>
+                    </form>
+                </div>
 
-                    <!-- Categorías -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="catDrop" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Categorías
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="catDrop">
-                            <li><a class="dropdown-item" asp-controller="Catalogo" asp-action="Index">Ver todo</a></li>
-                            <li><hr class="dropdown-divider" /></li>
-                            @await Component.InvokeAsync("CategoriasMenu") @* solo <li> *@
-                        </ul>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Catalogo" asp-action="Index">Ver todo</a>
-                    </li>
-                </ul>
-
-                <!-- acciones derecha -->
+                <!-- Acciones derecha -->
                 <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end action-bar">
                     <a class="btn btn-outline-light btn-sm" asp-controller="Carrito" asp-action="Index">
                         <span class="me-1">🛒</span><span id="miniCartCount">0</span>
@@ -51,10 +40,19 @@
                     }
                     else
                     {
-                        <a class="btn btn-outline-light btn-sm" asp-area="Admin" asp-controller="Auth" asp-action="Login">Admin</a>
+                        <a class="btn btn-outline-light btn-sm" asp-area="Admin" asp-controller="Auth" asp-action="Login">Iniciar sesión</a>
                     }
                 </div>
             </div>
         </div>
     </nav>
+
+    <!-- CATBAR (pestañas) -->
+    <div class="gd-catbar bg-dark">
+        <div class="container">
+            @* nav horizontal con scroll en móvil *@
+            @await Component.InvokeAsync("CategoriasBar")
+        </div>
+    </div>
+
 </header>
