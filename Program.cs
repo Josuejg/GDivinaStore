@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-
+using System.Globalization;
+using Microsoft.AspNetCore.Localization;
 var builder = WebApplication.CreateBuilder(args);
 
 // MVC + RuntimeCompilation (opcional para hot-reload de vistas en desarrollo)
@@ -24,6 +25,18 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+// Cultura Costa Rica para moneda, fechas y números
+var cr = new CultureInfo("es-CR");
+CultureInfo.DefaultThreadCurrentCulture = cr;
+CultureInfo.DefaultThreadCurrentUICulture = cr;
+
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(cr),
+    SupportedCultures = new[] { cr },
+    SupportedUICultures = new[] { cr }
+});
+
 
 
 
