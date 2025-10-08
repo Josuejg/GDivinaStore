@@ -1,10 +1,10 @@
-﻿/* ===========================
+﻿/* =========================================================
    HEADER / NAVBAR (2 NIVELES)
-   =========================== */
+   ========================================================= */
 
-/* Logo responsivo (base 72px; crece en XL y 2K) */
+/* Logo responsivo (escala de 64px a 96px según viewport) */
 .navbar-brand .brand-logo {
-    height: clamp(80px, 6vw, 80px);
+    height: clamp(64px, 6vw, 96px);
     width: auto;
     object-fit: contain;
     display: block;
@@ -18,12 +18,12 @@
     align-items: center;
 }
 
-/* Acciones de la derecha: permiten salto en móvil si es necesario */
+/* Acciones (carrito / WhatsApp / Admin) con salto en móvil si hace falta */
 .action-bar {
     row-gap: .4rem;
 }
 
-/* Buscador ancho y cómodo (si usas .gd-search alrededor del input) */
+/* Buscador ancho y cómodo (si envuelves el input en .gd-search) */
 .gd-search {
     min-width: 260px;
 }
@@ -37,7 +37,7 @@
         padding-bottom: .6rem;
     }
 
-/* Compactar paddings en móviles */
+/* Compactación en móviles: enlaces y botones del navbar */
 @media (max-width: 575.98px) {
     .navbar .nav-link {
         padding: .375rem .5rem;
@@ -49,35 +49,25 @@
     }
 }
 
-/* Logo más alto en pantallas grandes */
-@media (min-width: 1200px) {
-    .navbar-brand .brand-logo {
-        height: 80px;
-    }
-}
-
-@media (min-width: 1600px) {
-    .navbar-brand .brand-logo {
-        height: 96px;
-    }
-}
-
-/* Integración visual del dropdown en navbar oscuro */
+/* Mejor cohesión del menú desplegable en navbar oscuro */
 .navbar-dark .dropdown-menu {
     border-color: rgba(255,255,255,.15);
 }
 
-/* ===========================
-   BARRA DE CATEGORÍAS (NIVEL 2)
-   =========================== */
+/* Si quieres forzar fondo del header oscuro sin clases de Bootstrap:
+   .navbar { background: #111; } */
 
-/* Contenedor de la barra (no mostrar "ascensor" lateral) */
+/* =========================================================
+   BARRA DE CATEGORÍAS (NIVEL 2)
+   ========================================================= */
+
+/* Contenedor de la barra: sin “ascensor” lateral */
 .gd-catnav {
     overflow: visible; /* Evita scroll externo */
     gap: .5rem;
 }
 
-    /* Estilo de los links en la barra de categorías */
+    /* Estilo de los links de la barra */
     .gd-catnav .nav-link {
         white-space: nowrap;
         color: #fff;
@@ -89,7 +79,14 @@
             text-decoration: underline;
         }
 
-/* Dropdown de categorías: si hay muchas, scroll interno */
+        /* Estado activo de pestaña */
+        .gd-catnav .nav-link.active {
+            opacity: 1 !important;
+            font-weight: 600;
+            border-bottom: 2px solid #fff;
+        }
+
+/* Menú de categorías: si hay muchas, el scroll es interno del dropdown */
 .gd-cat-list {
     min-width: 280px;
     max-height: 70vh;
@@ -106,12 +103,12 @@
         color: #fff;
     }
 
-/* Pestañas inline de categorías (accesos rápidos) */
+/* Pestañas inline (accesos rápidos). Si no caben, scroll horizontal suave */
 .gd-cat-inline {
     display: flex;
     flex-wrap: nowrap;
     gap: .25rem;
-    overflow-x: auto; /* scroll horizontal suave si no caben */
+    overflow-x: auto;
     scrollbar-width: thin; /* Firefox */
 }
 
@@ -128,13 +125,6 @@
         background: transparent;
     }
 
-/* Marca de pestaña activa */
-.gd-catnav .nav-link.active {
-    opacity: 1 !important;
-    font-weight: 600;
-    border-bottom: 2px solid #fff;
-}
-
 /* En pantallas chicas mostramos solo el dropdown; ocultamos pestañas inline */
 @media (max-width: 767.98px) {
     .gd-cat-inline {
@@ -142,13 +132,66 @@
     }
 }
 
-/* ===========================
-   TARJETAS DE PRODUCTO (OPCIONAL)
-   =========================== */
+/* =========================================================
+   FOOTER OSCURO (3 COLUMNAS)
+   ========================================================= */
+
+.site-footer {
+    background: #1f1f1f;
+    color: #ddd;
+}
+
+    .site-footer .footer-title {
+        color: #fff;
+        font-weight: 600;
+        margin-bottom: .5rem;
+    }
+
+    .site-footer a {
+        color: #cfd3d8;
+        text-decoration: none;
+    }
+
+        .site-footer a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+/* Lista de contacto: ícono (emoji) + texto alineados */
+.footer-list li {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .5rem;
+}
+
+/* Enlaces de la tercera columna */
+.footer-links li {
+    margin-bottom: .4rem;
+}
+
+/* Botones de redes circulares */
+.site-footer .btn {
+    --bs-btn-color: #fff;
+    --bs-btn-border-color: rgba(255,255,255,.5);
+    --bs-btn-hover-color: #000;
+    --bs-btn-hover-bg: #fff;
+    --bs-btn-hover-border-color: #fff;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    line-height: 32px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* =========================================================
+   TARJETAS DE PRODUCTO
+   ========================================================= */
 
 .product-card .product-thumb {
     position: relative;
-    height: 220px; /* alto base móvil */
+    height: 220px; /* Alto base móvil */
     background: #f5f6f8;
     border-radius: .5rem .5rem 0 0;
     overflow: hidden;
@@ -157,16 +200,18 @@
     justify-content: center;
 }
 
-@media (min-width:768px) {
+@media (min-width: 768px) {
     .product-card .product-thumb {
         height: 260px;
     }
+    /* Tablet/desktop */
 }
 
+/* Imagen ajustada sin recorte + zoom suave en hover */
 .product-card .product-thumb img {
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain; /* ajusta sin recortar */
+    object-fit: contain;
     transition: transform .25s ease;
 }
 
@@ -174,6 +219,7 @@
     transform: scale(1.05);
 }
 
+/* Título en una línea con elipsis */
 .product-card .card-title {
     white-space: nowrap;
     overflow: hidden;

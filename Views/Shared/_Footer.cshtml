@@ -1,13 +1,52 @@
-﻿
-@* Views/Shared/_Footer.cshtml *@
-<footer class="border-top mt-5 py-4">
-    <div class="container d-flex flex-column flex-md-row justify-content-between gap-3">
-        <div>
-            <div class="fw-semibold">Gracia Divina</div>
-            <small class="text-muted">Hecho con amor en CR</small>
+﻿@* Views/Shared/_Footer.cshtml *@
+<footer class="site-footer mt-5">
+    <div class="container py-5">
+        <div class="row g-4">
+
+            <!-- Columna 1: Contacto -->
+            <div class="col-12 col-lg-4">
+                <h5 class="footer-title">Contáctenos</h5>
+                <ul class="list-unstyled small footer-list">
+                    <li>📧 <a href="mailto:admin@gracia.com">admin@gracia.com</a></li>
+                    <li>☎️ <a href="tel:+50600000000">+506 0000-0000</a></li>
+                    <li>📍  Pérez Zeledón, Costa Rica</li>
+                    <li>💬 <a href="https://wa.me/###########" target="_blank" rel="noopener">WhatsApp</a></li>
+                </ul>
+
+                <div class="d-flex gap-2 mt-3">
+                    <a class="btn btn-outline-light btn-sm rounded-circle" href="#" aria-label="Facebook">f</a>
+                    <a class="btn btn-outline-light btn-sm rounded-circle" href="#" aria-label="Instagram">ig</a>
+                </div>
+            </div>
+
+            <!-- Columna 2: Historia -->
+            <div class="col-12 col-lg-5">
+                <h5 class="footer-title">Acerca de nuestra tienda</h5>
+                <hr class="border-secondary my-2" />
+                <p class="small text-secondary mb-0">
+                    Gracia Divina es una tienda en línea dedicada a ofrecer bisutería, accesorios,
+                    ropa de mujer y pijamas con estilo y calidad. Nuestro objetivo es brindar una
+                    experiencia de compra cómoda, confiable y accesible para todos nuestros clientes.
+                    ✨ ¡Gracias por visitarnos!
+                </p>
+            </div>
+
+            <!-- Columna 3: Secciones -->
+            <div class="col-12 col-lg-3">
+                <h5 class="footer-title">Secciones</h5>
+                <ul class="list-unstyled small footer-links">
+                    <li><a asp-controller="Home" asp-action="Index">Inicio</a></li>
+                    <li><a asp-controller="Catalogo" asp-action="Index">Catálogo</a></li>
+                    <li><a asp-controller="Catalogo" asp-action="Index" asp-route-novedades="1">Novedades</a></li>
+                    <li><a asp-controller="Home" asp-action="Privacidad">Política de privacidad</a></li>
+                    <li><a asp-controller="Home" asp-action="Terminos">Términos y condiciones</a></li>
+                </ul>
+            </div>
+
         </div>
-        <div class="text-muted">
-            <small>WhatsApp: ########### · Horario: L–S 9:00–18:00</small>
+
+        <div class="border-top border-secondary mt-4 pt-3 small text-center text-secondary">
+            © @DateTime.Now.Year Gracia Divina · Hecho con amor en CR
         </div>
     </div>
 </footer>
