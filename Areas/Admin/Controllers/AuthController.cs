@@ -72,21 +72,21 @@ namespace GraciaDivina.Areas.Admin.Controllers
             }
 
             // 2) Verificar contraseña actual
-            if (!GraciaDivina.Security.PasswordHasher.Verify(model.CurrentPassword, dbUser.Hash))
+            if (!GraciaDivina.Security.PasswordHasher.Verify(model.ContrasenaActual, dbUser.Hash))
             {
-                ModelState.AddModelError(nameof(model.CurrentPassword), "Contraseña actual incorrecta.");
+                ModelState.AddModelError(nameof(model.ContrasenaActual), "Contraseña actual incorrecta.");
                 return View(model);
             }
 
             // 3) Evitar que la nueva sea igual a la actual
-            if (GraciaDivina.Security.PasswordHasher.Verify(model.NewPassword, dbUser.Hash))
+            if (GraciaDivina.Security.PasswordHasher.Verify(model.NuevaContrasena, dbUser.Hash))
             {
-                ModelState.AddModelError(nameof(model.NewPassword), "La nueva contraseña no puede ser igual a la actual.");
+                ModelState.AddModelError(nameof(model.NuevaContrasena), "La nueva contraseña no puede ser igual a la actual.");
                 return View(model);
             }
 
             // 4) Generar nuevo hash y guardar
-            var newHash = GraciaDivina.Security.PasswordHasher.Hash(model.NewPassword);
+            var newHash = GraciaDivina.Security.PasswordHasher.Hash(model.NuevaContrasena);
             await _db.EjecutarAsync("gd_sp_AdminUsuario_ActualizarPassword", cmd =>
             {
                 cmd.Parameters.AddWithValue("@Usuario", dbUser.Usuario);

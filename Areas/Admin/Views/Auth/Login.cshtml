@@ -3,28 +3,69 @@
     ViewData["Title"] = "Acceso administrador";
 }
 
-<h1 class="h4 mb-3">Acceso administrador</h1>
+<link rel="stylesheet" href="~/css/login-styles.css" />
 
-@if (!string.IsNullOrEmpty(Model.Error))
-{
-    <div class="alert alert-danger">@Model.Error</div>
-}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1 class="login-title">Acceso Administrador</h1>
+            <p class="login-subtitle">Ingresa tus credenciales para continuar</p>
+        </div>
 
-<form asp-action="Login" method="post" class="card p-3" style="max-width:420px;">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="ReturnUrl" />
-    <div class="mb-3">
-        <label asp-for="Usuario" class="form-label"></label>
-        <input asp-for="Usuario" class="form-control" autofocus />
-        <span class="text-danger" asp-validation-for="Usuario"></span>
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <div class="alert-error">
+                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>@Model.Error</span>
+            </div>
+        }
+
+        <form asp-action="Login" method="post" class="login-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div class="form-group">
+                <label asp-for="Usuario" class="form-label">Usuario</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <input asp-for="Usuario" class="form-input" placeholder="Ingresa tu usuario" autofocus />
+                </div>
+                <span class="form-error" asp-validation-for="Usuario"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Password" class="form-label">Contraseña</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                    <input asp-for="Password" class="form-input" placeholder="Ingresa tu contraseña" />
+                </div>
+                <span class="form-error" asp-validation-for="Password"></span>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                <span class="btn-text">Iniciar Sesión</span>
+                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <p class="footer-text">Sistema Gracia Divina</p>
+        </div>
     </div>
-    <div class="mb-3">
-        <label asp-for="Password" class="form-label"></label>
-        <input asp-for="Password" class="form-control" />
-        <span class="text-danger" asp-validation-for="Password"></span>
+
+    <div class="background-decoration">
+        <div class="decoration-circle decoration-circle-1"></div>
+        <div class="decoration-circle decoration-circle-2"></div>
     </div>
-    <button class="btn btn-primary">Entrar</button>
-</form>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
