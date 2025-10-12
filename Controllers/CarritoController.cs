@@ -111,34 +111,47 @@ namespace GraciaDivina.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Confirmar(CheckoutVM model)
         {
-            // Normaliza teléfono (solo dígitos) y vuelve a validar longitud
-            model.Telefono = new string(model.Telefono.Where(char.IsDigit).ToArray());
-            if (!Regex.IsMatch(model.Telefono, @"^\d{8,15}$"))
-                ModelState.AddModelError(nameof(model.Telefono), "El teléfono debe contener solo números (8 a 15 dígitos).");
+            // 1) Normaliza teléfono a solo dígitos para que cumpla el [RegularExpression] del VM
+            model.Telefono = new string(model.Telefono?.Where(char.IsDigit).ToArray() ?? Array.Empty<char>());
 
-            if (!ModelState.IsValid) return View(model);
+            // 2) Revalida con DataAnnotations después de normalizar
+            ModelState.Clear();
+            TryValidateModel(model);
+            if (!ModelState.IsValid)
+                return View(model);
 
             var id = GetOrCreateCarritoId();
 
-            // Output: PedidoID
-            var pId = new SqlParameter("@PedidoID", SqlDbType.Int) { Direction = ParameterDirection.Output };
-            await _db.EjecutarAsync("gd_sp_Pedido_CrearDesdeCarrito", cmd =>
+            try
             {
-                cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = id });
-                cmd.Parameters.AddWithValue("@Nombre", model.Nombre);
-                cmd.Parameters.AddWithValue("@Telefono", model.Telefono);
-                cmd.Parameters.AddWithValue("@Direccion", (object?)model.Direccion ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@Email", (object?)model.Email ?? DBNull.Value);
-                cmd.Parameters.Add(pId);
-            });
+                // 3) Ejecuta el SP que crea el pedido desde el carrito
+                var pId = new SqlParameter("@PedidoID", SqlDbType.Int) { Direction = ParameterDirection.Output };
 
-            model.PedidoID = (int)pId.Value;
+                await _db.EjecutarAsync("gd_sp_Pedido_CrearDesdeCarrito", cmd =>
+                {
+                    cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = id });
+                    cmd.Parameters.AddWithValue("@Nombre", model.Nombre);
+                    cmd.Parameters.AddWithValue("@Telefono", model.Telefono);
+                    cmd.Parameters.AddWithValue("@Direccion", (object?)model.Direccion ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Email", (object?)model.Email ?? DBNull.Value);
+                    cmd.Parameters.Add(pId);
+                });
 
-            // Limpia la cookie del carrito
-            Response.Cookies.Delete(CART_COOKIE);
+                model.PedidoID = (int)pId.Value;
 
-            // Redirige a un resumen del pedido (lo haremos en PedidoController) o muestra gracias.
-            return RedirectToAction("Resumen", "Pedido", new { id = model.PedidoID });
+                // 4) Limpia la cookie del carrito (pedido creado)
+                Response.Cookies.Delete(CART_COOKIE);
+
+                // 5) Redirige a resumen del pedido
+                return RedirectToAction("Resumen", "Pedido", new { id = model.PedidoID });
+            }
+            catch (Exception ex)
+            {
+                // Mensaje simple para el usuario; loggea 'ex' internamente si tienes logger
+                ModelState.AddModelError(string.Empty, "No fue posible crear el pedido. Intenta de nuevo.");
+                return View(model);
+            }
         }
+
     }
 }

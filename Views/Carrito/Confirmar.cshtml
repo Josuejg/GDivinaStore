@@ -5,8 +5,12 @@
 <h1 class="h4 mb-3">Confirmar pedido</h1>
 
 <div class="row g-4">
-    <div class="col<form asp-action="Confirmar" method="post">
-        <form asp-action="Confirmar" method="post">
+    <!-- Columna izquierda: formulario -->
+    <div class="col-12 col-md-6">
+        <form asp-action="Confirmar" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
             <div class="mb-3">
                 <label asp-for="Nombre" class="form-label"></label>
                 <input asp-for="Nombre" class="form-control" inputmode="text" />
@@ -31,16 +35,19 @@
                 <span class="text-danger" asp-validation-for="Email"></span>
             </div>
 
-            <button class="btn btn-success">Generar pedido</button>
-            <a class="btn btn-secondary" asp-action="Index">Volver al carrito</a>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success">Generar pedido</button>
+                <a class="btn btn-secondary" asp-action="Index">Volver al carrito</a>
+            </div>
         </form>
     </div>
 
+    <!-- Columna derecha: resumen -->
     <div class="col-12 col-md-6">
         <div class="card">
             <div class="card-header">Resumen</div>
             <div class="card-body">
-                @if (!Model.Carrito.Items.Any())
+                @if (Model?.Carrito?.Items == null || !Model.Carrito.Items.Any())
                 {
                     <div class="text-muted">Tu carrito está vacío.</div>
                 }
@@ -50,7 +57,10 @@
                         @foreach (var it in Model.Carrito.Items)
                         {
                             <li class="list-group-item d-flex justify-content-between">
-                                <span>@it.Producto <small class="text-muted">x @it.Cantidad</small></span>
+                                <span>
+                                    @it.Producto
+                                    <small class="text-muted">x @it.Cantidad</small>
+                                </span>
                                 <strong>@it.Subtotal.ToString("C")</strong>
                             </li>
                         }
