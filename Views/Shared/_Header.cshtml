@@ -19,13 +19,17 @@
             <div class="collapse navbar-collapse" id="mainNav">
                 <!-- Buscador centrado -->
                 <div class="gd-search flex-grow-1 mx-lg-3 my-2 my-lg-0">
-                    <form asp-controller="Catalogo" asp-action="Index" method="get">
+                    <form asp-controller="Producto" asp-action="Buscar" method="get">
                         <div class="input-group input-group-lg">
-                            <input name="q" class="form-control" placeholder="Buscar por artículo" />
+                            <input name="q"
+                                   class="form-control"
+                                   placeholder="Buscar por artículo, categoría o descripción..."
+                                   value="@(ViewBag.Query ?? string.Empty)" />
                             <button class="btn btn-primary" type="submit">🔍</button>
                         </div>
                     </form>
                 </div>
+
 
                 <!-- Acciones derecha -->
                 <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end action-bar">

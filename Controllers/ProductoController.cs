@@ -14,6 +14,8 @@ namespace GraciaDivina.Controllers
         private readonly AccesoDatos _db;
         public ProductoController(AccesoDatos db) => _db = db;
 
+
+
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
@@ -85,8 +87,8 @@ namespace GraciaDivina.Controllers
 
             // Filtro público en C#: si existe Activo, respétalo; si no, no filtramos por Activo.
             var variantesPublicas = variantes
-      .Where(v => v != null /* && v.Stock > 0 */)
-      .ToList();
+              .Where(v => v != null /* && v.Stock > 0 */)
+              .ToList();
 
             prod.Variantes = variantesPublicas;
 
@@ -138,7 +140,53 @@ namespace GraciaDivina.Controllers
 
             return View(prod);
         }
+        // Acción de búsqueda con paginación         
+        [HttpGet]
+        public async Task<IActionResult> Buscar(string? q, int page = 1, int pageSize = 24)
+        {
+            // 1) Lista paginada
+            var productos = await _db.ConsultarAsync(
+                "gd_sp_Producto_Buscar",
+                dr => new ProductCardVM
+                {
+                    ProductoID = dr.GetInt32(dr.GetOrdinal("ProductoID")),
+                    Nombre = dr.GetString(dr.GetOrdinal("Nombre")),
+                    Precio = dr.IsDBNull(dr.GetOrdinal("Precio")) ? 0m : dr.GetDecimal(dr.GetOrdinal("Precio")),
+                    ImagenUrl = dr.IsDBNull(dr.GetOrdinal("ImagenUrl")) ? null : dr.GetString(dr.GetOrdinal("ImagenUrl"))
+                },
+                cmd => {
+                    cmd.Parameters.AddWithValue("@q", (object?)q ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@page", page);
+                    cmd.Parameters.AddWithValue("@pageSize", pageSize);
+                }
+            );
+
+            // 2) Total (usa un SP de conteo simple; si no lo tienes, te lo paso)
+            var total = await _db.EscalarAsync<int>(
+                "gd_sp_Producto_Buscar_Total",
+                cmd => {
+                    cmd.Parameters.AddWithValue("@q", (object?)q ?? DBNull.Value);
+                }
+            );
+
+            var vm = new BuscarProductVM
+            {
+                Q = q,
+                Page = page,
+                PageSize = pageSize,
+                Total = total,
+                Resultados = productos
+            };
+            ViewBag.Query = q;
+            ViewBag.Count = total;
+
+            return View(vm); // Views/Producto/Buscar.cshtml
+        }
+
+
+
     }
+
 
     // Helper para evitar IndexOutOfRange cuando falte una columna
     internal static class DataRecordExt
