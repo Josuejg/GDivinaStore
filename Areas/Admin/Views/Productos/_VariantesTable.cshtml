@@ -1,0 +1,52 @@
+﻿@model IEnumerable<GraciaDivina.Models.ViewModels.ProductVariantVM>
+
+@{
+    // Tomamos el ProductID de ViewBag (lo setea la acción Variantes)
+    var productoId = ViewBag.ProductoID is int pid ? pid : 0;
+}
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info mb-0">Este producto aún no tiene variantes.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Talla</th>
+                    <th>Color</th>
+                    <th class="text-end">Stock</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in Model)
+                {
+                    <tr>
+                        <td>@v.SKU</td>
+                        <td>@(string.IsNullOrWhiteSpace(v.Talla) ? "-" : v.Talla)</td>
+                        <td>@(string.IsNullOrWhiteSpace(v.Color) ? "-" : v.Color)</td>
+                        <td class="text-end">@v.Stock</td>
+                        <td class="text-nowrap">
+                            <form asp-area="Admin"
+                                  asp-controller="Productos"
+                                  asp-action="EliminarVariante"
+                                  method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="productoId" value="@productoId" />
+                                <input type="hidden" name="varianteId" value="@v.VarianteID" />
+                                <button class="btn btn-outline-danger btn-sm"
+                                        onclick="return confirm('¿Eliminar variante?');">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

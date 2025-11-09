@@ -1,0 +1,308 @@
+﻿@* RUTA: Areas/Admin/Views/Productos/Crear.cshtml *@
+@model GraciaDivina.Models.ViewModels.AdminProductVM
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = Model.ProductoID == null ? "Crear producto" : "Editar producto";
+}
+@if (TempData["ok"] is string ok && !string.IsNullOrWhiteSpace(ok))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @ok
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<h1 class="h4 mb-3">@ViewData["Title"]</h1>
+
+<!-- ======================= FORM PRINCIPAL (GUARDAR PRODUCTO) ======================= -->
+<form asp-area="Admin"
+      asp-controller="Productos"
+      asp-action="Guardar"
+      method="post"
+      enctype="multipart/form-data"
+      class="row g-3">
+    @Html.AntiForgeryToken()
+
+    <input asp-for="ProductoID" type="hidden" />
+
+    <div class="col-12">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    </div>
+
+    <div class="col-12 col-md-8">
+        <label asp-for="Nombre" class="form-label"></label>
+        <input asp-for="Nombre" class="form-control" />
+        <span class="text-danger" asp-validation-for="Nombre"></span>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <label asp-for="Precio" class="form-label"></label>
+        <input asp-for="Precio" type="number" step="0.01" class="form-control" />
+        <span class="text-danger" asp-validation-for="Precio"></span>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <label asp-for="CategoriaID" class="form-label">Categoría</label>
+        <select asp-for="CategoriaID" class="form-select" asp-items="ViewBag.Categorias">
+            <option value="">(Sin categoría)</option>
+        </select>
+        <span class="text-danger" asp-validation-for="CategoriaID"></span>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <label class="form-label d-block">Activo</label>
+        <input asp-for="Activo" class="form-check-input" type="checkbox" />
+        <span class="text-danger" asp-validation-for="Activo"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Descripcion" class="form-label"></label>
+        <textarea asp-for="Descripcion" rows="4" class="form-control"></textarea>
+        <span class="text-danger" asp-validation-for="Descripcion"></span>
+    </div>
+
+    <!-- Imagen -->
+    <div class="col-12 col-md-6">
+        <label class="form-label">Imagen actual</label>
+        <div class="d-flex align-items-center gap-3">
+            <img src="@(string.IsNullOrEmpty(Model.ImagenUrl) ? "/img/placeholder.svg" : Model.ImagenUrl)"
+                 alt="preview" style="max-height:80px; border:1px solid #ddd; padding:2px;" />
+            <div class="flex-grow-1">
+                <label asp-for="Imagen" class="form-label">Subir imagen</label>
+                <input asp-for="Imagen" type="file" accept="image/*" class="form-control" />
+                <small class="text-muted">Se guardará en /img/products/</small>
+            </div>
+        </div>
+        <input asp-for="ImagenUrl" type="hidden" />
+    </div>
+
+    <!-- ====== Variantes iniciales (opcional, antes de guardar) ====== -->
+    <hr class="my-4" />
+    <h5 class="mb-2">Variantes iniciales (opcional)</h5>
+    <p class="text-muted small">
+        Si marcas tallas aquí, al guardar el producto se crearán variantes automáticamente.
+    </p>
+
+    <div class="col-12 col-lg-6">
+        <div class="d-flex align-items-center justify-content-between">
+            <label class="form-label mb-1">Tallas disponibles</label>
+            <div class="small">
+                <button type="button" class="btn btn-link px-1 py-0" id="btnPreTallasTodas">Marcar todas</button> ·
+                <button type="button" class="btn btn-link px-1 py-0" id="btnPreTallasNinguna">Quitar todas</button>
+            </div>
+        </div>
+
+        <div class="border rounded p-2" style="max-height:240px; overflow:auto;">
+            @if (ViewBag.Tallas is IEnumerable<SelectListItem> tallasPre)
+            {
+                foreach (var t in tallasPre)
+                {
+                    <div class="form-check form-check-inline me-3 mb-2">
+                        <input class="form-check-input chk-pre-talla" type="checkbox"
+                               name="tallasPre" id="pt-@t.Value" value="@t.Value" />
+                        <label class="form-check-label" for="pt-@t.Value">@t.Text</label>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-muted">No hay tallas configuradas.</div>
+            }
+        </div>
+        <small class="text-muted">Puedes dejar sin seleccionar si no deseas crear variantes ahora.</small>
+    </div>
+
+    <div class="col-12 col-lg-6">
+        <label class="form-label">Color (opcional, texto libre)</label>
+        <input type="text" name="colorPreNombre" class="form-control" placeholder="Ej.: Negro, Azul Marino" />
+
+        <div class="row g-3 mt-1">
+            <div class="col-12">
+                <label class="form-label">SKU (opcional)</label>
+                <input type="text" name="skuPre" class="form-control" placeholder="Si lo dejas vacío, se generará" />
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label">Stock inicial (opcional)</label>
+                <input type="number" name="stockPre" class="form-control" value="0" min="0" />
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== /Variantes iniciales ====== -->
+
+    <div class="col-12">
+        <button class="btn btn-primary" type="submit">Guardar</button>
+        <button type="button"
+                class="btn btn-secondary"
+                onclick="location.href='@Url.Action("Index", "Productos", new { area = "Admin" })'">
+            Cancelar
+        </button>
+    </div>
+</form>
+
+<!-- ======================= VARIANTES (solo múltiples por checkboxes) ======================= -->
+<hr class="my-4" />
+<h5 class="mb-3">Variantes (Tallas / Colores / Stock)</h5>
+
+@if (Model.ProductoID != null)
+{
+    <div class="mt-1">
+        <p class="text-muted small mb-3">
+            Marca múltiples <strong>tallas</strong> y (opcional) <strong>colores</strong>; se crearán todas las combinaciones.
+            Si no marcas colores, se generará solo por talla.
+        </p>
+
+        <form asp-area="Admin"
+              asp-controller="Productos"
+              asp-action="GenerarVariantes"
+              method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="productoId" value="@Model.ProductoID" />
+
+            <!-- ====== Tallas (checkboxes simples, post-guardado) ====== -->
+            <div class="col-12 col-lg-6">
+                <div class="d-flex align-items-center justify-content-between">
+                    <label class="form-label mb-1">Tallas</label>
+                    <div class="small">
+                        <button type="button" class="btn btn-link px-1 py-0" id="btnTallasSelTodas">Marcar todas</button> ·
+                        <button type="button" class="btn btn-link px-1 py-0" id="btnTallasSelNinguna">Quitar todas</button>
+                    </div>
+                </div>
+
+                <div id="wrapTallas" class="border rounded p-2" style="max-height:240px; overflow:auto;">
+                    @if (ViewBag.Tallas is IEnumerable<SelectListItem> tallas2)
+                    {
+                        foreach (var t in tallas2)
+                        {
+                            <div class="form-check form-check-inline me-3 mb-2">
+                                <!-- IMPORTANTE: name="tallas" -->
+                                <input class="form-check-input chk-talla" type="checkbox" name="tallas" id="t-@t.Value" value="@t.Value" />
+                                <label class="form-check-label" for="t-@t.Value">@t.Text</label>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted">No hay tallas configuradas.</div>
+                    }
+                </div>
+                <small class="text-muted">Selecciona al menos una talla.</small>
+            </div>
+
+            <!-- Colores (opcional) -->
+            <div class="col-12 col-lg-6">
+                <div class="d-flex align-items-center justify-content-between">
+                    <label class="form-label mb-1">Colores (opcional)</label>
+                    <div class="small">
+                        <button type="button" class="btn btn-link px-1 py-0" id="btnColoresTodos">Marcar todos</button> ·
+                        <button type="button" class="btn btn-link px-1 py-0" id="btnColoresNinguno">Quitar todos</button>
+                    </div>
+                </div>
+
+                <div class="border rounded p-2" style="max-height:240px; overflow:auto;">
+                    @if (ViewBag.Colores is IEnumerable<SelectListItem> colores2)
+                    {
+                        foreach (var c in colores2)
+                        {
+                            <div class="form-check form-check-inline me-3 mb-2">
+                                <input class="form-check-input chk-color" type="checkbox" name="colores" id="c-@c.Value" value="@c.Value" />
+                                <label class="form-check-label" for="c-@c.Value">@c.Text</label>
+                            </div>
+                        }
+                    }
+                </div>
+                <small class="text-muted">Si no marcas colores, se generará solo por talla.</small>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <label class="form-label">Stock inicial</label>
+                <input type="number" name="stock" value="0" min="0" class="form-control" />
+            </div>
+
+            <div class="col-6 col-md-3">
+                <label class="form-label d-block">Activo</label>
+                <input type="checkbox" name="activo" class="form-check-input" checked />
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Generar variantes</button>
+            </div>
+        </form>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        Guarda primero el producto para poder agregar variantes.
+    </div>
+}
+
+<!-- Contenedor para la tabla de variantes -->
+<div id="zona-variantes" class="mt-3"></div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // ========== Tabla de variantes (si usas AJAX) ==========
+            async function recargarVariantes(productoId) {
+                const zona = document.getElementById('zona-variantes');
+                if (!zona || !productoId) {
+                    if (zona) zona.innerHTML = '<div class="text-muted small">Guarda el producto para gestionar variantes.</div>';
+                    return;
+                }
+                zona.innerHTML = '<div class="text-muted">Cargando...</div>';
+                try {
+                    const r = await fetch(`/Admin/Productos/Variantes?id=${encodeURIComponent(productoId)}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        cache: 'no-store'
+                    });
+                    zona.innerHTML = await r.text();
+                } catch {
+                    zona.innerHTML = '<div class="text-danger">No se pudieron cargar las variantes.</div>';
+                }
+            }
+            (function () {
+                const pid = '@(Model.ProductoID?.ToString() ?? "")';
+                if (pid) recargarVariantes(pid);
+            })();
+
+            // ========== PRE-GUARDAR (tallas - marcar/quitar todas) ==========
+            (function () {
+                const all = sel => Array.from(document.querySelectorAll(sel));
+                const bind = (id, fn) => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('click', e => { e.preventDefault(); fn(); });
+                };
+                bind('btnPreTallasTodas',   () => all('.chk-pre-talla').forEach(cb => cb.checked = true));
+                bind('btnPreTallasNinguna', () => all('.chk-pre-talla').forEach(cb => cb.checked = false));
+            })();
+
+            // ========== POST-GUARDAR (GenerarVariantes) ==========
+            (function () {
+                const all = sel => Array.from(document.querySelectorAll(sel));
+                document.getElementById('btnTallasSelTodas')?.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    all('.chk-talla').forEach(cb => cb.checked = true);
+                });
+                document.getElementById('btnTallasSelNinguna')?.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    all('.chk-talla').forEach(cb => cb.checked = false);
+                });
+            })();
+
+            (function () {
+                const all = sel => Array.from(document.querySelectorAll(sel));
+                const bind = (id, fn) => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('click', e => { e.preventDefault(); fn(); });
+                };
+                bind('btnColoresTodos',   () => all('.chk-color').forEach(cb => cb.checked = true));
+                bind('btnColoresNinguno', () => all('.chk-color').forEach(cb => cb.checked = false));
+            })();
+        });
+    </script>
+}

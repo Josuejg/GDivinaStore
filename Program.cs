@@ -1,31 +1,38 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Globalization;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Http; // SameSiteMode
+
 var builder = WebApplication.CreateBuilder(args);
 
-// MVC + RuntimeCompilation (opcional para hot-reload de vistas en desarrollo)
+// ===== MVC =====
 builder.Services.AddControllersWithViews();
 
-
-
-
+// ===== Infra =====
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<GraciaDivina.Models.AccesoDatos>();
+builder.Services.AddMemoryCache();
 
+// AccesoDatos: usar Scoped (mejor que Singleton para conexiones por request)
+builder.Services.AddScoped<GraciaDivina.Models.AccesoDatos>();
+
+// ===== Auth (Cookies) =====
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Admin/Auth/Login";
         options.AccessDeniedPath = "/Admin/Auth/Denied";
         options.Cookie.Name = "GD_ADMIN";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;   // evita bloqueos del navegador
         options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
     });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
-// Cultura Costa Rica para moneda, fechas y números
+
+// ===== Cultura es-CR =====
 var cr = new CultureInfo("es-CR");
 CultureInfo.DefaultThreadCurrentCulture = cr;
 CultureInfo.DefaultThreadCurrentUICulture = cr;
@@ -37,9 +44,7 @@ app.UseRequestLocalization(new RequestLocalizationOptions
     SupportedUICultures = new[] { cr }
 });
 
-
-
-
+// ===== Pipeline =====
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -47,7 +52,6 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -55,10 +59,10 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ===== Rutas =====
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
-
 
 app.MapControllerRoute(
     name: "default",

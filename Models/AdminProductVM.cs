@@ -25,5 +25,7 @@ namespace GraciaDivina.Models.ViewModels
 
         // Upload
         public IFormFile? Imagen { get; set; }
+     
+
     }
 }

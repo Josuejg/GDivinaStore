@@ -1,4 +1,5 @@
-﻿@{
+﻿@* RUTA: Views/Shared/_Layout.cshtml *@
+@{
     var title = ViewData["Title"] as string ?? "Gracia Divina";
 }
 <!doctype html>
@@ -7,21 +8,42 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@title</title>
+
+    @* --- CSS (usa local de wwwroot/lib o cambia a CDN si no existe) --- *@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    @* Favicon (opcional) *@
+    <link rel="icon" type="image/png" href="~/img/favicon.png" />
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
+    @* Header / Navbar *@
     @await Html.PartialAsync("_Header")
 
-    <main class="container py-4">
+    <main class="container py-4 flex-grow-1">
         @RenderBody()
     </main>
 
+    @* Footer y minicart *@
     @await Html.PartialAsync("_Footer")
     @await Html.PartialAsync("_MiniCart")
 
+    @* --- JS (Bootstrap 5 bundle) --- *@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    @* Scripts de la app *@
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @* Validación unobtrusive (las vistas suelen llamar _ValidationScriptsPartial en @section Scripts;
+       si prefieres cargarlo global, descomenta:
+       @await Html.PartialAsync("_ValidationScriptsPartial")
+    *@
+
+    @* Soporte para Browser Refresh solo en desarrollo (evita los warnings) *@
+    <environment include="Development">
+        <script src="/_framework/aspnetcore-browser-refresh.js"></script>
+    </environment>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

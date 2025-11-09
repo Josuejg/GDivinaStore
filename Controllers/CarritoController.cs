@@ -11,15 +11,12 @@ namespace GraciaDivina.Controllers
     {
         private const string CART_COOKIE = "GD_CART";
         private readonly AccesoDatos _db;
-
         public CarritoController(AccesoDatos db) => _db = db;
 
-        // Obtiene o crea el GUID del carrito en cookie
         private Guid GetOrCreateCarritoId()
         {
             if (Request.Cookies.TryGetValue(CART_COOKIE, out var v) && Guid.TryParse(v, out var g))
                 return g;
-
             var nuevo = Guid.NewGuid();
             Response.Cookies.Append(CART_COOKIE, nuevo.ToString(), new CookieOptions
             {
@@ -47,12 +44,13 @@ namespace GraciaDivina.Controllers
                     Color = dr.IsDBNull(9) ? null : dr.GetString(9),
                     ImagenUrl = dr.IsDBNull(10) ? null : dr.GetString(10)
                 },
-                cmd => cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = carritoId }));
-
+                cmd => cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = carritoId })
+            );
             return new CartVM { Items = items };
         }
 
         // GET /Carrito
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
             var id = GetOrCreateCarritoId();
@@ -60,23 +58,60 @@ namespace GraciaDivina.Controllers
             return View(vm);
         }
 
-        // POST /Carrito/Agregar  (desde Producto/Details)
+    
+        // POST /Carrito/Agregar
         [HttpPost]
-        public async Task<IActionResult> Agregar(int varianteId, int cantidad = 1, string? returnUrl = null)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Agregar(int? varianteId, int? productoId, int cantidad = 1, string? returnUrl = null)
         {
             var id = GetOrCreateCarritoId();
-            await _db.EjecutarAsync("gd_sp_Carrito_AgregarItem", cmd =>
-            {
-                cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = id });
-                cmd.Parameters.Add(new SqlParameter("@VarianteID", SqlDbType.Int) { Value = varianteId });
-                cmd.Parameters.Add(new SqlParameter("@Cantidad", SqlDbType.Int) { Value = Math.Max(1, cantidad) });
-            });
+            var cant = Math.Max(1, cantidad);
 
-            if (!string.IsNullOrWhiteSpace(returnUrl)) return Redirect(returnUrl);
+            if (varianteId.HasValue)
+            {
+                // Agrega por VarianteID (flujo con talla/color)
+                await _db.EjecutarAsync("gd_sp_Carrito_AgregarItem", cmd =>
+                {
+                    cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = id });
+                    cmd.Parameters.Add(new SqlParameter("@VarianteID", SqlDbType.Int) { Value = varianteId.Value });
+                    cmd.Parameters.Add(new SqlParameter("@Cantidad", SqlDbType.Int) { Value = cant });
+                });
+            }
+            else if (productoId.HasValue)
+            {
+                // Si el producto tiene variantes, exigir varianteId
+                // (La vista ya lo impide, pero protegemos el POST directo)
+                // Puedes descomentar el chequeo si quieres reforzar:
+                // var tieneVariantes = await _db.EscalarAsync<int>("gd_sp_Producto_TieneVariantes", cmd =>
+                //     cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = productoId.Value }));
+                // if (tieneVariantes == 1) { TempData["Error"] = "Elige una combinación disponible."; return RedirectToAction("Details","Producto", new { id = productoId.Value }); }
+
+                // Por compatibilidad: permitir agregar por producto cuando no hay variantes
+                await _db.EjecutarAsync("gd_sp_Carrito_AgregarProducto", cmd =>
+
+                {
+                    cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = id });
+                    cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = productoId.Value });
+                    cmd.Parameters.Add(new SqlParameter("@Cantidad", SqlDbType.Int) { Value = cant });
+                });
+            }
+            else
+            {
+                // No llegó ni varianteId ni productoId -> regresar al home o a donde estabas
+                TempData["Error"] = "Elige una combinación disponible.";
+                return !string.IsNullOrWhiteSpace(returnUrl)
+                    ? Redirect(returnUrl)
+                    : RedirectToAction("Index", "Catalogo");
+            }
+
+            // Redirección
+            if (!string.IsNullOrWhiteSpace(returnUrl))
+                return Redirect(returnUrl);
+
             return RedirectToAction(nameof(Index));
         }
 
-        // POST /Carrito/Actualizar
+
         [HttpPost]
         public async Task<IActionResult> Actualizar(long itemId, int cantidad)
         {
@@ -88,7 +123,6 @@ namespace GraciaDivina.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // POST /Carrito/Quitar
         [HttpPost]
         public async Task<IActionResult> Quitar(long itemId)
         {
@@ -97,7 +131,8 @@ namespace GraciaDivina.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET /Carrito/Confirmar  (captura datos)
+        // Checkout (datos cliente + crea pedido)
+        [HttpGet]
         public async Task<IActionResult> Confirmar()
         {
             var id = GetOrCreateCarritoId();
@@ -106,52 +141,29 @@ namespace GraciaDivina.Controllers
             return View(vm);
         }
 
-        // POST /Carrito/Confirmar  (crea pedido y vacía carrito)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Confirmar(CheckoutVM model)
         {
-            // 1) Normaliza teléfono a solo dígitos para que cumpla el [RegularExpression] del VM
-            model.Telefono = new string(model.Telefono?.Where(char.IsDigit).ToArray() ?? Array.Empty<char>());
-
-            // 2) Revalida con DataAnnotations después de normalizar
-            ModelState.Clear();
-            TryValidateModel(model);
-            if (!ModelState.IsValid)
-                return View(model);
+            model.Telefono = new string((model.Telefono ?? "").Where(char.IsDigit).ToArray());
+            if (!Regex.IsMatch(model.Telefono, @"^\d{8,15}$"))
+                ModelState.AddModelError(nameof(model.Telefono), "El teléfono debe contener solo números (8 a 15 dígitos).");
+            if (!ModelState.IsValid) return View(model);
 
             var id = GetOrCreateCarritoId();
+            var pId = new SqlParameter("@PedidoID", SqlDbType.Int) { Direction = ParameterDirection.Output };
 
-            try
+            await _db.EjecutarAsync("gd_sp_Pedido_CrearDesdeCarrito", cmd =>
             {
-                // 3) Ejecuta el SP que crea el pedido desde el carrito
-                var pId = new SqlParameter("@PedidoID", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = id });
+                cmd.Parameters.AddWithValue("@Nombre", model.Nombre);
+                cmd.Parameters.AddWithValue("@Telefono", model.Telefono);
+                cmd.Parameters.AddWithValue("@Direccion", (object?)model.Direccion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Email", (object?)model.Email ?? DBNull.Value);
+                cmd.Parameters.Add(pId);
+            });
 
-                await _db.EjecutarAsync("gd_sp_Pedido_CrearDesdeCarrito", cmd =>
-                {
-                    cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = id });
-                    cmd.Parameters.AddWithValue("@Nombre", model.Nombre);
-                    cmd.Parameters.AddWithValue("@Telefono", model.Telefono);
-                    cmd.Parameters.AddWithValue("@Direccion", (object?)model.Direccion ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Email", (object?)model.Email ?? DBNull.Value);
-                    cmd.Parameters.Add(pId);
-                });
-
-                model.PedidoID = (int)pId.Value;
-
-                // 4) Limpia la cookie del carrito (pedido creado)
-                Response.Cookies.Delete(CART_COOKIE);
-
-                // 5) Redirige a resumen del pedido
-                return RedirectToAction("Resumen", "Pedido", new { id = model.PedidoID });
-            }
-            catch (Exception ex)
-            {
-                // Mensaje simple para el usuario; loggea 'ex' internamente si tienes logger
-                ModelState.AddModelError(string.Empty, "No fue posible crear el pedido. Intenta de nuevo.");
-                return View(model);
-            }
+            Response.Cookies.Delete(CART_COOKIE);
+            return RedirectToAction("Resumen", "Pedido", new { id = (int)pId.Value });
         }
-
     }
 }

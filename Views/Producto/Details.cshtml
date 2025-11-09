@@ -1,67 +1,202 @@
 ﻿@model GraciaDivina.Models.ViewModels.ProductDetailsVM
+@using System.Linq
+
 @{
-    ViewData["Title"] = Model.Nombre;
+    ViewData["Title"] = Model?.Nombre ?? "Producto";
+
+    var variantes  = Model?.Variantes ?? new List<GraciaDivina.Models.ViewModels.ProductVariantVM>();
+    var tallas     = variantes.Where(v => !string.IsNullOrWhiteSpace(v.Talla))
+                              .Select(v => v.Talla!).Distinct().OrderBy(x => x).ToList();
+    var colores    = variantes.Where(v => !string.IsNullOrWhiteSpace(v.Color))
+                              .Select(v => v.Color!).Distinct().OrderBy(x => x).ToList();
+    bool tieneVar  = variantes.Any();
 }
 
-<div class="row g-4">
-    <div class="col-12 col-md-6">
-        <img class="img-fluid rounded"
-             src="@(string.IsNullOrEmpty(Model.ImagenUrl) ? Url.Content("~/img/placeholder.svg") : Model.ImagenUrl)"
-             alt="@Model.Nombre" />
-    </div>
+<div class="container py-4">
+    <div class="row g-4">
+        <!-- Imagen -->
+        <div class="col-12 col-md-6">
+            <div class="ratio ratio-1x1 bg-light rounded d-flex align-items-center justify-content-center">
+                <img src="@(string.IsNullOrEmpty(Model?.ImagenUrl) ? Url.Content("~/img/placeholder.svg") : Model!.ImagenUrl)"
+                     alt="@Model?.Nombre" class="img-fluid rounded" />
+            </div>
+        </div>
 
-    <div class="col-12 col-md-6">
-        <h1 class="h4 mb-1">@Model.Nombre</h1>
-        @if (!string.IsNullOrEmpty(Model.Categoria))
+        <!-- Info -->
+        <div class="col-12 col-md-6">
+            <h1 class="h4 mb-1">@Model?.Nombre</h1>
+            @if (!string.IsNullOrWhiteSpace(Model?.Categoria))
+            {
+                <div class="text-muted small mb-2">Categoría: @Model!.Categoria</div>
+            }
+
+            <div class="h5 mb-3">@Model?.Precio.ToString("C")</div>
+
+            @if (!string.IsNullOrWhiteSpace(Model?.Descripcion))
+            {
+                <p class="mb-3">@Model!.Descripcion</p>
+            }
+
+            @* ---- Acciones (con o sin variantes) ---- *@
+            @if (tieneVar)
+            {<form id="frmAdd" asp-controller="Carrito" asp-action="Agregar" method="post" class="mt-2">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="productoId" value="@Model?.ProductoID" />
+    <input type="hidden" name="varianteId" id="hidVarianteId" />
+    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+    <div class="row g-2 align-items-end">
+        @* Talla (chips) *@
+        @if (tallas.Any())
         {
-            <div class="text-muted mb-2">@Model.Categoria</div>
-        }
-
-        <div class="h5 mb-3">@Model.Precio.ToString("C")</div>
-
-        @if (Model.Variantes.Any())
-        {
-            <form asp-controller="Carrito" asp-action="Agregar" method="post" class="mb-3">
-                <div class="mb-2">
-                    <label class="form-label">Variante</label>
-                    <select name="varianteId" class="form-select">
-                        @foreach (var v in Model.Variantes)
-                        {
-                            <option value="@v.VarianteID">@v.Display</option>
-                        }
-                    </select>
+            <div class="col-12">
+                <label class="form-label mb-1">Talla</label>
+                <div id="chipsTalla" class="d-flex flex-wrap gap-2">
+                    @foreach (var t in tallas)
+                    {
+                        <button type="button" class="btn btn-outline-secondary btn-sm chip-talla" data-talla="@t">@t</button>
+                    }
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Cantidad</label>
-                    <input type="number" name="cantidad" value="1" min="1" class="form-control" />
-                </div>
-                <button class="btn btn-primary">Agregar al carrito</button>
-            </form>
-        }
-        else
-        {
-            <div class="alert alert-warning">Este producto no tiene variantes definidas aún.</div>
-            <button class="btn btn-secondary" disabled>Agregar al carrito</button>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(Model.Descripcion))
-        {
-            <hr />
-            <p>@Model.Descripcion</p>
-        }
-    </div>
-</div>
-
-@if (Model.Relacionados.Any())
-{
-    <hr class="my-4" />
-    <h2 class="h5">También te puede interesar</h2>
-    <div class="row g-3">
-        @foreach (var p in Model.Relacionados)
-        {
-            <div class="col-6 col-md-4 col-lg-3">
-                @await Html.PartialAsync("_ProductCard", p)
             </div>
         }
+
+        @* Color (chips) *@
+        @if (colores.Any())
+        {
+            <div class="col-12">
+                <label class="form-label mb-1">Color</label>
+                <div id="chipsColor" class="d-flex flex-wrap gap-2">
+                    @foreach (var c in colores)
+                    {
+                        <button type="button" class="btn btn-outline-secondary btn-sm chip-color" data-color="@c">@c</button>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Cant.</label>
+            <input type="number" name="cantidad" value="1" min="1" class="form-control form-control-sm" />
+        </div>
+
+        <div class="col-6 col-md-2 d-grid">
+            <button type="submit" id="btnAdd" class="btn btn-primary btn-sm" disabled>Agregar al carrito</button>
+        </div>
+
+        <div class="col-12">
+            <small id="msgVar" class="text-danger" style="display:none;">Elige una combinación disponible.</small>
+        </div>
     </div>
+</form>
+
+            }
+            else
+            {
+                <form asp-controller="Carrito" asp-action="Agregar" method="post" class="mt-2 d-flex gap-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="productoId" value="@Model?.ProductoID" />
+                    <input type="number" name="cantidad" value="1" min="1" class="form-control" style="max-width:110px" />
+                    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                    <button type="submit" class="btn btn-primary">Agregar al carrito</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @* Relacionados *@
+    @if (Model?.Relacionados?.Any() == true)
+    {
+        <hr class="my-4" />
+        <h2 class="h5 mb-3">También te puede interesar</h2>
+        <div class="row g-3">
+            @foreach (var p in Model.Relacionados)
+            {
+                <div class="col-6 col-md-3">
+                    @await Html.PartialAsync("_ProductCard", p)
+                </div>
+            }
+        </div>
+    }
+</div>
+@section Scripts {
+<script>
+    // Mapa variantes desde el modelo
+    const variants = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        variantes.Select(v => new {
+            varianteId = v.VarianteID,
+            talla = v.Talla ?? "",
+            color = v.Color ?? "",
+            stock = v.Stock
+        })
+    ));
+
+    let tallaSel = "";  // texto de talla seleccionada
+    let colorSel = "";  // texto de color seleccionado (si aplica)
+
+    const btnAdd = document.getElementById('btnAdd');
+    const hidVar = document.getElementById('hidVarianteId');
+    const msgVar = document.getElementById('msgVar');
+
+    function setActive(groupSelector, targetBtn) {
+        document.querySelectorAll(groupSelector).forEach(b => b.classList.remove('active'));
+        if (targetBtn) targetBtn.classList.add('active');
+    }
+
+    function resolveVariante() {
+        const needTalla = document.querySelectorAll('.chip-talla').length > 0;
+        const needColor = document.querySelectorAll('.chip-color').length > 0;
+
+        if ((needTalla && !tallaSel) || (needColor && !colorSel)) {
+            hidVar.value = "";
+            btnAdd.disabled = true;
+            msgVar.style.display = "block";
+            return;
+        }
+
+        const match = variants.find(v =>
+            (!needTalla || v.talla === tallaSel) &&
+            (!needColor || v.color === colorSel)
+        );
+
+        if (match /* && (match.stock === null || match.stock > 0) */) {
+            hidVar.value = match.varianteId;
+            btnAdd.disabled = false;
+            msgVar.style.display = "none";
+        } else {
+            hidVar.value = "";
+            btnAdd.disabled = true;
+            msgVar.style.display = "block";
+        }
+    }
+
+    // Eventos chips
+    document.getElementById('chipsTalla')?.addEventListener('click', e => {
+        const btn = e.target.closest('.chip-talla');
+        if (!btn) return;
+        tallaSel = btn.dataset.talla || "";
+        setActive('.chip-talla', btn);
+        resolveVariante();
+    });
+
+    document.getElementById('chipsColor')?.addEventListener('click', e => {
+        const btn = e.target.closest('.chip-color');
+        if (!btn) return;
+        colorSel = btn.dataset.color || "";
+        setActive('.chip-color', btn);
+        resolveVariante();
+    });
+
+    // Protección submit directo
+    document.getElementById('frmAdd')?.addEventListener('submit', function (e) {
+        if (!hidVar.value) {
+            e.preventDefault();
+            msgVar.style.display = "block";
+            btnAdd.disabled = true;
+        }
+    });
+
+    // Intento inicial
+    resolveVariante();
+</script>
 }
+

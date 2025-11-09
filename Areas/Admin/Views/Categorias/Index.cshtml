@@ -1,34 +1,72 @@
 ﻿@model IEnumerable<GraciaDivina.Models.Categoria>
+
 @{
     ViewData["Title"] = "Categorías";
 }
 
 <h1 class="h4 mb-3">Categorías</h1>
-<button type="button" class="btn btn-outline-secondary btn-sm"
-        onclick="location.href='@Url.Action("Index", "Home", new { area = "Admin" })'">
-    ← Volver
+
+<button type="button"
+        class="btn btn-primary mb-3"
+        onclick="location.href='@Url.Action("Create", "Categorias", new { area = "Admin" })'">
+    <i class="bi bi-plus-lg"></i> Nueva categoría
 </button>
-
-
-<div class="table-responsive">
-    <table class="table align-middle">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Activo</th>
-                <th>Creado</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var c in Model)
-            {
+<button type="button" class="btn btn-outline-primary btn-sm"
+        onclick="location.href='@Url.Action("Index", "Home", new { area = "Admin" })'">
+    ← Volver al panel
+</button>
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info mb-0">
+        No hay categorías registradas.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
                 <tr>
-                    <td>@c.Nombre</td>
-                    <td>@(c.Activo ? "Sí" : "No")</td>
-                    <td>@c.FechaCreacion.ToString("yyyy-MM-dd")</td>
+                    <th style="width:80px;">ID</th>
+                    <th>Nombre</th>
+                    <th style="width:40%;">Descripción</th>
+                    <th style="width:160px;"></th> @* Acciones *@
                 </tr>
-            }
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td>@c.CategoriaID</td>
+                        <td>@c.Nombre</td>
+                        <td>@(string.IsNullOrWhiteSpace(c.Descripcion) ? "—" : c.Descripcion)</td>
+                        <td class="text-nowrap d-flex gap-2">
 
-        </tbody>
-    </table>
-</div>
+                            @* --- Opción A: si la acción del controlador se llama Edit --- *@
+                            <a class="btn btn-sm btn-warning"
+                               asp-area="Admin"
+                               asp-controller="Categorias"
+                               asp-action="Edit"
+                               asp-route-id="@c.CategoriaID">
+                                Editar
+                            </a>                 
+                            @* Delete por POST (seguro) *@
+                            <form asp-area="Admin"
+                                  asp-controller="Categorias"
+                                  asp-action="Delete"
+                                  method="post"
+                                  class="d-inline"
+                                  onsubmit="return confirm('¿Seguro que deseas eliminar &quot;@c.Nombre&quot;?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.CategoriaID" />
+                                <button type="submit" class="btn btn-sm btn-danger ms-1">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

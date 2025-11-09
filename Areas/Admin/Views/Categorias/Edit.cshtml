@@ -3,3 +3,35 @@
 *@
 @{
 }
+@model GraciaDivina.Models.Categoria
+
+@{
+    ViewData["Title"] = "Editar categoría";
+}
+
+<h2 class="mb-3">Editar categoría</h2>
+
+<form asp-area="Admin" asp-controller="Categorias" asp-action="Edit" method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="CategoriaID" />
+
+    <div class="col-12 col-md-8">
+        <label asp-for="Nombre" class="form-label"></label>
+        <input asp-for="Nombre" class="form-control" />
+        <span class="text-danger" asp-validation-for="Nombre"></span>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <label class="form-label d-block">Activo</label>
+        <input asp-for="Activo" type="checkbox" class="form-check-input" />
+    </div>
+
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <a asp-area="Admin" asp-controller="Categorias" asp-action="Index" class="btn btn-secondary">Volver</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -4,7 +4,7 @@
 
 /* Logo responsivo (escala de 64px a 96px según viewport) */
 .navbar-brand .brand-logo {
-    height: clamp(64px, 6vw, 96px);
+    height: clamp(80px, 8vw, 120px);
     width: auto;
     object-fit: contain;
     display: block;

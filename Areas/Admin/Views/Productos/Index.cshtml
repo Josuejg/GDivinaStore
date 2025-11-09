@@ -1,47 +1,87 @@
-﻿@model IEnumerable<GraciaDivina.Models.ViewModels.AdminProductVM>
+﻿@* RUTA: Areas/Admin/Views/Productos/Index.cshtml *@
+@model IEnumerable<GraciaDivina.Models.ViewModels.AdminProductVM>
+
 @{
     ViewData["Title"] = "Productos";
 }
-<h1 class="h4 mb-3">Productos</h1>
 
-@if (TempData["Msg"] != null)
-{
-    <div class="alert alert-success">@TempData["Msg"]</div>
-}
-
-<p>
-    <a class="btn btn-primary" asp-action="Create">Nuevo producto</a>
-    <button type="button" class="btn btn-outline-secondary btn-sm"
-            onclick="location.href='@Url.Action("Index", "Home", new { area = "Admin" })'">
-        ← Volver
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Productos</h2>
+    <button type="button"
+            class="btn btn-primary"
+            onclick="location.href='@Url.Action("Create", "Productos", new { area = "Admin" })'">
+        <i class="bi bi-plus-lg"></i> Nuevo producto
     </button>
-</p>
+    <button type="button" class="btn btn-outline-primary btn-sm"
+            onclick="location.href='@Url.Action("Index", "Home", new { area = "Admin" })'">
+        ← Volver al panel
+    </button>
+</div>
 
 <div class="table-responsive">
-    <table class="table align-middle">
-        <thead>
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
             <tr>
-                <th style="width:90px;">Img</th>
+                <th style="width:72px">ID</th>
+                <th style="width:110px">Imagen</th>
                 <th>Nombre</th>
-                <th>Categoría</th>
-                <th class="text-end">Precio</th>
-                <th>Activo</th>
-                <th style="width:180px;"></th>
+                <th style="width:130px">Categoría</th>
+                <th style="width:130px" class="text-end">Precio</th>
+                <th>Descripción</th>
+                <th style="width:80px">Activo</th>
+                <th style="width:180px"></th>
             </tr>
         </thead>
         <tbody>
             @foreach (var p in Model)
             {
-                <tr>
+                // Resuelve la URL de imagen (absoluta o relativa a wwwroot)
+                var url = p.ImagenUrl?.Trim() ?? "";
+                string img;
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    img = Url.Content("~/img/placeholder.svg");
+                }
+                else if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    img = url;
+                }
+                else if (url.StartsWith("~/") || url.StartsWith("/"))
+                {
+                    img = Url.Content(url);
+                }
+                else
+                {
+                    img = Url.Content("~/" + url);
+                }
+
+            <tr>
+                <td>@p.ProductoID</td>
+
+                <td>
+                    <img src="@img"
+                         alt="@p.Nombre"
+                         class="rounded shadow-sm border"
+                         style="width:90px;height:90px;object-fit:cover;object-position:center" />
+                </td>
+
+                <td class="fw-semibold">@p.Nombre</td>
+                <td>@(string.IsNullOrWhiteSpace(p.Categoria) ? p.CategoriaID.ToString() : p.Categoria)</td>
+
+                <td class="text-end">@p.Precio.ToString("C")</td>
+
+                <td>
+                    <div class="text-truncate" style="max-width:360px" title="@p.Descripcion">
+                        @(string.IsNullOrWhiteSpace(p.Descripcion)
+                                                ? "-"
+                                                : (p.Descripcion!.Length > 120
+                                                ? p.Descripcion.Substring(0, 120) + "…"
+                                                : p.Descripcion))
+                    </div>
+                </td>
+
                     <td>
-                        <img src="@(string.IsNullOrEmpty(p.ImagenUrl) ? Url.Content("~/img/placeholder.svg") : p.ImagenUrl)"
-                             style="width:80px;height:60px;object-fit:cover;border-radius:.25rem;" />
-                    </td>
-                    <td>@p.Nombre</td>
-                    <td>@p.Categoria</td>
-                    <td class="text-end">@p.Precio.ToString("C")</td>
-                    <td>
-                        @if (p.Activo)
+                    @if (p.Activo)
                         {
                             <span class="badge bg-success">Sí</span>
                         }
@@ -51,9 +91,29 @@
                             <span class="badge bg-secondary">No</span>
                         }
                     </td>
-                    <td>
-                        <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@p.ProductoID">Editar</a>
-                        <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@p.ProductoID">Eliminar</a>
+
+                    <td class="text-end">
+                        <!-- Editar -->
+                        <button type="button"
+                                class="btn btn-sm btn-warning"
+                                onclick="location.href='@Url.Action("Editar", "Productos", new { area = "Admin", id = p.ProductoID })'">
+                            Editar
+                        </button>
+
+                        <!-- Eliminar (POST directo, sin modal) -->
+                        <form asp-area="Admin"
+                              asp-controller="Productos"
+                              asp-action="Eliminar"
+                              method="post"
+                              class="d-inline"
+                              onsubmit="return confirm('¿Seguro que deseas eliminar &quot;@p.Nombre&quot;?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@p.ProductoID" />
+                            <button type="submit" class="btn btn-sm btn-danger ms-1">
+                                Eliminar
+                            </button>
+                        </form>
+                      
                     </td>
                 </tr>
             }
