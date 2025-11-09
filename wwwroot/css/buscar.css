@@ -1,0 +1,48 @@
+﻿/* ============================
+   Estilos para Buscar.cshtml
+   ============================ */
+/* Título y subtítulo */
+.container h4 {
+    font-weight: 700;
+    color: #1f2937; /* gris oscuro */
+}
+
+/* Tarjeta del resultado */
+.container .card {
+    border: 1px solid #e5e7eb;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+    .container .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    }
+
+    /* Imagen de producto dentro de la card */
+    .container .card .card-img-top {
+        object-fit: cover !important; /* por si Bootstrap pisa */
+        height: 220px !important;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    /* Título y precio */
+    .container .card .card-title {
+        font-size: .95rem;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .container .card .text-muted {
+        color: #475569 !important;
+    }
+
+/* Paginación */
+.pagination .page-item.active .page-link {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.pagination .page-link {
+    color: #2563eb;
+}
+

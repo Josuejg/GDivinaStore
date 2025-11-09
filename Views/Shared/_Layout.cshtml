@@ -12,6 +12,9 @@
     @* --- CSS (usa local de wwwroot/lib o cambia a CDN si no existe) --- *@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+
+
 
     @* Favicon (opcional) *@
     <link rel="icon" type="image/png" href="~/img/favicon.png" />

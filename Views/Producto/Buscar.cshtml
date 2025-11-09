@@ -1,8 +1,11 @@
 ﻿@model GraciaDivina.Models.ViewModels.BuscarProductVM
-
 @{
     ViewData["Title"] = "Resultados de búsqueda";
     var productos = Model?.Resultados ?? Enumerable.Empty<GraciaDivina.Models.ViewModels.ProductCardVM>();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/buscar.css" asp-append-version="true" />
 }
 
 <div class="container py-4">
@@ -20,7 +23,7 @@
                     <div class="card h-100 shadow-sm">
                         <a href="@Url.Action("Details", "Producto", new { id = p.ProductoID })">
                             <img src="@(string.IsNullOrEmpty(p.ImagenUrl) ? Url.Content("~/img/placeholder.svg") : p.ImagenUrl)"
-                                 class="card-img-top" alt="@p.Nombre" style="object-fit: cover; height: 200px;" />
+                                 class="card-img-top" alt="@p.Nombre" />
                         </a>
                         <div class="card-body text-center">
                             <h6 class="card-title">@p.Nombre</h6>
@@ -38,7 +41,6 @@
         }
     </div>
 
-    @* Paginación simple *@
     @{
         var page = Model?.Page ?? 1;
         var pageSize = Model?.PageSize ?? 24;
@@ -52,14 +54,12 @@
                 <li class="page-item @(page <= 1 ? "disabled" : "")">
                     <a class="page-link" href="@Url.Action("Buscar", "Producto", new { q = Model?.Q, page = page - 1, pageSize })">Anterior</a>
                 </li>
-
                 @for (int i = 1; i <= totalPages; i++)
                 {
                     <li class="page-item @(i == page ? "active" : "")">
                         <a class="page-link" href="@Url.Action("Buscar", "Producto", new { q = Model?.Q, page = i, pageSize })">@i</a>
                     </li>
                 }
-
                 <li class="page-item @(page >= totalPages ? "disabled" : "")">
                     <a class="page-link" href="@Url.Action("Buscar", "Producto", new { q = Model?.Q, page = page + 1, pageSize })">Siguiente</a>
                 </li>
