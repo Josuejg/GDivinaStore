@@ -37,8 +37,11 @@
 
     @* Scripts de la app *@
     <script src="~/js/site.js" asp-append-version="true"></script>
-
+    @* Stilos *@
     <script src="~/js/carrito-toast.js" asp-append-version="true"></script>
+    @* Carrito conteo de productos *@
+    <script src="~/js/cart-count.js" asp-append-version="true"></script>
+
     @if (TempData["ToastMsg"] is string toastMsg)
     {
         var toastType = TempData["ToastType"] as string ?? "success";

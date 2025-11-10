@@ -58,6 +58,16 @@ namespace GraciaDivina.Controllers
             var vm = await CargarCarrito(id);
             return View(vm);
         }
+        // GET /Carrito/Count
+        [HttpGet]
+        public async Task<IActionResult> Count()
+        {
+            var id = GetOrCreateCarritoId();
+            var vm = await CargarCarrito(id);
+            // Suma de cantidades (si el carrito está vacío, devuelve 0)
+            var total = vm?.Items?.Sum(i => i.Cantidad) ?? 0;
+            return Json(total);
+        }
 
 
         // POST /Carrito/Agregar
