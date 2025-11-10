@@ -1,4 +1,5 @@
 ﻿@* RUTA: Views/Shared/_Layout.cshtml *@
+@using System.Text.Json
 @{
     var title = ViewData["Title"] as string ?? "Gracia Divina";
 }
@@ -37,11 +38,23 @@
     @* Scripts de la app *@
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    @* Validación unobtrusive (las vistas suelen llamar _ValidationScriptsPartial en @section Scripts;
-       si prefieres cargarlo global, descomenta:
-       @await Html.PartialAsync("_ValidationScriptsPartial")
-    *@
+    <script src="~/js/carrito-toast.js" asp-append-version="true"></script>
+    @if (TempData["ToastMsg"] is string toastMsg)
+    {
+        var toastType = TempData["ToastType"] as string ?? "success";
+        var toastImg = TempData["ToastImg"] as string ?? Url.Content("~/img/placeholder.svg");
 
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Llama a la función global del archivo carrito-toast.js
+                mostrarToast(
+                    @Html.Raw(JsonSerializer.Serialize(toastMsg)),
+                    @Html.Raw(JsonSerializer.Serialize(toastType)),
+                    @Html.Raw(JsonSerializer.Serialize(toastImg))
+                );
+            });
+        </script>
+    }
     @* Soporte para Browser Refresh solo en desarrollo (evita los warnings) *@
     <environment include="Development">
         <script src="/_framework/aspnetcore-browser-refresh.js"></script>

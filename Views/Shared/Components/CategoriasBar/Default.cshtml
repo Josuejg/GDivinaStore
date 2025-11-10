@@ -1,26 +1,20 @@
 ﻿@model IEnumerable<GraciaDivina.Models.Categoria>
 @{
-    // Para marcar activa la categoría (opcional)
-    var qId = (string)ViewContext.HttpContext.Request.Query["categoriaId"];
-    int? selId = int.TryParse(qId, out var tmp) ? tmp : null;
+    // Lee el querystring como string seguro
+    var qId = ViewContext.HttpContext.Request.Query["categoriaId"].ToString();
+    int? selId = int.TryParse(qId, out var tmp) ? tmp : (int?)null;
 }
 
 <nav class="gd-catnav d-flex align-items-center">
-    <!-- Dropdown Categorías (despliega hacia abajo) -->
     <div class="nav-item dropdown me-2">
         <a class="nav-link dropdown-toggle px-2 text-white opacity-75"
-           href="#"
-           id="catDrop2"
-           role="button"
-           data-bs-toggle="dropdown"
-           aria-expanded="false">
+           href="#" id="catDrop2" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             Categorías
         </a>
 
         <div class="dropdown-menu dropdown-menu-dark p-2 shadow" aria-labelledby="catDrop2">
             <div class="gd-cat-list">
                 <a class="dropdown-item"
-                   asp-area=""
                    asp-controller="Catalogo" asp-action="Index">
                     Ver todo
                 </a>
@@ -29,7 +23,6 @@
                 @foreach (var c in Model)
                 {
                     <a class="dropdown-item"
-                       asp-area=""
                        asp-controller="Catalogo" asp-action="Index"
                        asp-route-categoriaId="@c.CategoriaID">
                         @c.Nombre
@@ -39,15 +32,13 @@
         </div>
     </div>
 
-    <!-- Pestañas en línea (accesos rápidos) -->
     <div class="gd-cat-inline">
-    
-        @foreach (var c in Model /*.Take(8) <- si quieres limitar cantidad en línea */)
+        @foreach (var c in Model)
         {
             var isActive = selId.HasValue && selId.Value == c.CategoriaID;
-            <a class="nav-link px-2 text-white @(isActive ? "active" : "opacity-75")"
-               asp-area=""
-               asp-controller="Catalogo" asp-action="Index"
+            <a class="nav-link px-2 text-white @(selId == c.CategoriaID ? "active" : "opacity-75")"
+               asp-controller="Catalogo"
+               asp-action="Index"
                asp-route-categoriaId="@c.CategoriaID">
                 @c.Nombre
             </a>
@@ -56,9 +47,7 @@
 
     <span class="flex-grow-1"></span>
 
-    <!-- Atajo a Novedades -->
     <a class="nav-link px-2 text-white opacity-75"
-       asp-area=""
        asp-controller="Catalogo" asp-action="Index" asp-route-novedades="1">
         Novedades
     </a>

@@ -3,6 +3,7 @@
     ViewData["Title"] = "Catálogo";
     var catNombre = ViewData["CategoriaNombre"] as string ?? "Todas";
 }
+
 <h1 class="h4 mb-3">Categoría: @catNombre</h1>
 
 @if (Model == null || !Model.Any())

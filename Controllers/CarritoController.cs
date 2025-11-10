@@ -2,6 +2,7 @@
 using GraciaDivina.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using System.Text.Json;
 using System.Data;
 using System.Text.RegularExpressions;
 
@@ -58,7 +59,7 @@ namespace GraciaDivina.Controllers
             return View(vm);
         }
 
-    
+
         // POST /Carrito/Agregar
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -67,6 +68,9 @@ namespace GraciaDivina.Controllers
             var id = GetOrCreateCarritoId();
             var cant = Math.Max(1, cantidad);
 
+            // ================================================
+            // 1️⃣ Lógica original de agregar al carrito
+            // ================================================
             if (varianteId.HasValue)
             {
                 // Agrega por VarianteID (flujo con talla/color)
@@ -79,16 +83,8 @@ namespace GraciaDivina.Controllers
             }
             else if (productoId.HasValue)
             {
-                // Si el producto tiene variantes, exigir varianteId
-                // (La vista ya lo impide, pero protegemos el POST directo)
-                // Puedes descomentar el chequeo si quieres reforzar:
-                // var tieneVariantes = await _db.EscalarAsync<int>("gd_sp_Producto_TieneVariantes", cmd =>
-                //     cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = productoId.Value }));
-                // if (tieneVariantes == 1) { TempData["Error"] = "Elige una combinación disponible."; return RedirectToAction("Details","Producto", new { id = productoId.Value }); }
-
                 // Por compatibilidad: permitir agregar por producto cuando no hay variantes
                 await _db.EjecutarAsync("gd_sp_Carrito_AgregarProducto", cmd =>
-
                 {
                     cmd.Parameters.Add(new SqlParameter("@CarritoID", SqlDbType.UniqueIdentifier) { Value = id });
                     cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = productoId.Value });
@@ -97,19 +93,54 @@ namespace GraciaDivina.Controllers
             }
             else
             {
-                // No llegó ni varianteId ni productoId -> regresar al home o a donde estabas
                 TempData["Error"] = "Elige una combinación disponible.";
                 return !string.IsNullOrWhiteSpace(returnUrl)
                     ? Redirect(returnUrl)
                     : RedirectToAction("Index", "Catalogo");
             }
 
-            // Redirección
+            // ================================================
+            // 2️⃣ Obtener nombre e imagen del producto
+            // ================================================
+            int productoRef = productoId ?? 0;
+
+            // Si vino una variante, buscamos su ProductoID real
+            if (productoRef == 0 && varianteId.HasValue)
+            {
+                productoRef = await _db.EscalarAsync<int>("gd_sp_ProductoID_PorVariante", cmd =>
+                {
+                    cmd.Parameters.AddWithValue("@VarianteID", varianteId.Value);
+                });
+            }
+
+            var producto = await _db.ConsultarUnoAsync(
+                "gd_sp_Producto_Obtener",
+                dr => new
+                {
+                    Nombre = dr.GetString(dr.GetOrdinal("Nombre")),
+                    ImagenUrl = dr.IsDBNull(dr.GetOrdinal("ImagenUrl"))
+                        ? "/img/placeholder.svg"
+                        : dr.GetString(dr.GetOrdinal("ImagenUrl"))
+                },
+                cmd => cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = productoRef })
+            );
+
+            // ================================================
+            // 3️⃣ Configurar Toast dinámico (nombre + imagen)
+            // ================================================
+            TempData["ToastMsg"] = $"{producto?.Nombre ?? "Producto"} agregado al carrito 🛒";
+            TempData["ToastType"] = "success";
+            TempData["ToastImg"] = producto?.ImagenUrl ?? Url.Content("~/img/placeholder.svg");
+
+            // ================================================
+            // 4️⃣ Redirección
+            // ================================================
             if (!string.IsNullOrWhiteSpace(returnUrl))
                 return Redirect(returnUrl);
 
             return RedirectToAction(nameof(Index));
         }
+
 
 
         [HttpPost]
