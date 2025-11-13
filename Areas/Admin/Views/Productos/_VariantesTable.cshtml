@@ -1,48 +1,101 @@
 ﻿@model IEnumerable<GraciaDivina.Models.ViewModels.ProductVariantVM>
-
-@{
-    // Tomamos el ProductID de ViewBag (lo setea la acción Variantes)
-    var productoId = ViewBag.ProductoID is int pid ? pid : 0;
-}
+@using Microsoft.AspNetCore.Mvc.Rendering
 
 @if (Model == null || !Model.Any())
 {
-    <div class="alert alert-info mb-0">Este producto aún no tiene variantes.</div>
+    <div class="alert alert-warning mb-0">Este producto aún no tiene variantes.</div>
 }
 else
 {
     <div class="table-responsive">
-        <table class="table table-sm align-middle">
+        <table class="table align-middle">
             <thead>
                 <tr>
-                    <th>SKU</th>
-                    <th>Talla</th>
-                    <th>Color</th>
-                    <th class="text-end">Stock</th>
-                    <th style="width:1%"></th>
+                    <th style="width:140px">SKU</th>
+                    <th style="width:170px">Talla</th>
+                    <th style="width:170px">Color</th>
+                    <th style="width:110px">Stock</th>
+                    <th style="width:90px">Activa</th>
+                    <th style="width:180px"></th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var v in Model)
                 {
+                    var formId = $"frmVar_{v.VarianteID}";
+                    <!-- Formulario “real” (oculto) al que apuntan los controles de la fila -->
+                    <form id="@formId"
+                          asp-area="Admin"
+                          asp-controller="Productos"
+                          asp-action="ActualizarVariante"
+                          method="post"
+                          style="display:none">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="varianteId" value="@v.VarianteID" />
+                    </form>
+
                     <tr>
-                        <td>@v.SKU</td>
-                        <td>@(string.IsNullOrWhiteSpace(v.Talla) ? "-" : v.Talla)</td>
-                        <td>@(string.IsNullOrWhiteSpace(v.Color) ? "-" : v.Color)</td>
-                        <td class="text-end">@v.Stock</td>
-                        <td class="text-nowrap">
-                            <form asp-area="Admin"
-                                  asp-controller="Productos"
-                                  asp-action="EliminarVariante"
-                                  method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="productoId" value="@productoId" />
-                                <input type="hidden" name="varianteId" value="@v.VarianteID" />
-                                <button class="btn btn-outline-danger btn-sm"
-                                        onclick="return confirm('¿Eliminar variante?');">
-                                    Eliminar
-                                </button>
-                            </form>
+                        <td>
+                            <input name="sku"
+                                   class="form-control form-control-sm"
+                                   value="@(v.SKU ?? string.Empty)"
+                                   form="@formId" />
+                        </td>
+                        <td>
+                            <select name="tallaId" class="form-select form-select-sm" form="@formId">
+                                <option value="">(Sin talla)</option>
+                                @foreach (SelectListItem t in (IEnumerable<SelectListItem>)ViewBag.Tallas)
+                                {
+                                    var selected = (v.TallaID?.ToString() == t.Value) ? "selected" : null;
+                                    <option value="@t.Value" selected="@selected">@t.Text</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select name="colorId" class="form-select form-select-sm" form="@formId">
+                                <option value="">(Sin color)</option>
+                                @foreach (SelectListItem c in (IEnumerable<SelectListItem>)ViewBag.Colores)
+                                {
+                                    var selected = (v.ColorID?.ToString() == c.Value) ? "selected" : null;
+                                    <option value="@c.Value" selected="@selected">@c.Text</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number"
+                                   name="stock"
+                                   class="form-control form-control-sm"
+                                   min="0"
+                                   value="@(v.Stock is int s ? s : 0)"
+                                   form="@formId" />
+                        </td>
+                        <td>
+                            <div class="form-check">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       name="activo"
+                                       value="true"
+                                       @(v.Activo == true ? "checked" : "")
+                                       form="@formId" />
+                                <!-- el hidden asegura enviar false cuando esté desmarcado -->
+                                <input type="hidden" name="activo" value="false" form="@formId" />
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <button type="submit" class="btn btn-sm btn-primary" form="@formId">Guardar</button>
+
+                                <form asp-area="Admin"
+                                      asp-controller="Productos"
+                                      asp-action="EliminarVariante"
+                                      method="post"
+                                      onsubmit="return confirm('¿Eliminar esta variante?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="productoId" value="@ViewBag.ProductoID" />
+                                    <input type="hidden" name="varianteId" value="@v.VarianteID" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 }

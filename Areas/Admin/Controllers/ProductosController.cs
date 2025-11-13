@@ -159,6 +159,21 @@ namespace GraciaDivina.Areas.Admin.Controllers
             ViewBag.Tallas = await CargarTallasAsync();
             ViewBag.Colores = await CargarColoresAsync();
 
+            // ==================== Tallas ya presentes en variantes ====================
+            ViewBag.TallasMarcadas = await _db.ConsultarAsync(
+                "__raw_sql__",
+                dr => dr.IsDBNull(0) ? 0 : dr.GetInt32(0),
+                cmd =>
+                {
+                    cmd.CommandType = System.Data.CommandType.Text;
+                    cmd.CommandText = @"
+                        SELECT DISTINCT TallaID
+                        FROM dbo.gd_ProductoVariante
+                        WHERE ProductoID = @p AND TallaID IS NOT NULL;";
+                    cmd.Parameters.Add(new SqlParameter("@p", System.Data.SqlDbType.Int) { Value = id });
+                }
+            );
+
             return View("Editar", vm);
         }
 
@@ -179,9 +194,11 @@ namespace GraciaDivina.Areas.Admin.Controllers
             return !string.IsNullOrEmpty(referer) ? Redirect(referer) : RedirectToAction(nameof(Index));
         }
 
+        // ================= Guardar (POST) =================
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Guardar(AdminProductVM vm)
         {
+            // ================= Validación =================
             if (!ModelState.IsValid)
             {
                 ViewBag.Categorias = await CargarCategoriasAsync();
@@ -190,81 +207,141 @@ namespace GraciaDivina.Areas.Admin.Controllers
                 return View("Crear", vm);
             }
 
-            // ---- Subir imagen (opcional) ----
-            if (vm.Imagen != null && vm.Imagen.Length > 0)
+            // ================= 1) Imagen (opcional) =================
+            // Si no se sube nada, se conserva la ImagenUrl que viene en el hidden de la vista
+            if (vm.Imagen is { Length: > 0 })
             {
                 var uploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "img", "products");
                 Directory.CreateDirectory(uploads);
 
-                var ext = Path.GetExtension(vm.Imagen.FileName);
-                var fileName = $"{Guid.NewGuid():N}{ext}";
+                var fileName = $"{Guid.NewGuid():N}{Path.GetExtension(vm.Imagen.FileName)}";
                 var fullPath = Path.Combine(uploads, fileName);
 
-                using (var fs = new FileStream(fullPath, FileMode.Create))
-                    await vm.Imagen.CopyToAsync(fs);
+                using var fs = new FileStream(fullPath, FileMode.Create);
+                await vm.Imagen.CopyToAsync(fs);
 
                 vm.ImagenUrl = $"/img/products/{fileName}";
             }
 
-            // ---- Guardar/actualizar producto ----
+            // ================= 2) Guardar / actualizar producto =================
             var id = await _db.EscalarAsync<int>("gd_sp_Producto_Guardar", cmd =>
             {
                 cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int)
-                { Direction = ParameterDirection.InputOutput, Value = (object?)vm.ProductoID ?? DBNull.Value });
+                {
+                    Direction = ParameterDirection.InputOutput,
+                    Value = (object?)vm.ProductoID ?? DBNull.Value
+                });
                 cmd.Parameters.Add(new SqlParameter("@Nombre", SqlDbType.NVarChar, 200) { Value = vm.Nombre });
                 cmd.Parameters.Add(new SqlParameter("@CategoriaID", SqlDbType.Int) { Value = vm.CategoriaID });
-                cmd.Parameters.Add(new SqlParameter("@Precio", SqlDbType.Decimal) { Precision = 18, Scale = 2, Value = vm.Precio });
-                cmd.Parameters.Add(new SqlParameter("@ImagenUrl", SqlDbType.NVarChar, 500) { Value = (object?)vm.ImagenUrl ?? DBNull.Value });
+                cmd.Parameters.Add(new SqlParameter("@Precio", SqlDbType.Decimal)
+                {
+                    Precision = 18,
+                    Scale = 2,
+                    Value = vm.Precio
+                });
+                cmd.Parameters.Add(new SqlParameter("@ImagenUrl", SqlDbType.NVarChar, 500)
+                {
+                    Value = (object?)vm.ImagenUrl ?? DBNull.Value
+                });
                 cmd.Parameters.Add(new SqlParameter("@Activo", SqlDbType.Bit) { Value = vm.Activo });
-                cmd.Parameters.Add(new SqlParameter("@Descripcion", SqlDbType.NVarChar, -1) { Value = (object?)vm.Descripcion ?? DBNull.Value });
+                cmd.Parameters.Add(new SqlParameter("@Descripcion", SqlDbType.NVarChar, -1)
+                {
+                    Value = (object?)vm.Descripcion ?? DBNull.Value
+                });
             });
-            // ========== Variantes iniciales (PRE-GUARDAR) ==========
+
+            // ================= 3) Lectura común del formulario =================
+
+            // Tallas marcadas (puede venir "tallasPre" de la vista vieja o "tallas" de la nueva)
+            var tallasMarcadas = Request.Form["tallasPre"].Concat(Request.Form["tallas"])
+                .Select(v => int.TryParse(v, out var x) ? x : 0)
+                .Where(x => x > 0)
+                .Distinct()
+                .ToArray();
+
+            // Texto del color (puede venir como colorPreNombre o colorNombre)
+            var colorTexto = (Request.Form["colorPreNombre"].FirstOrDefault()
+                              ?? Request.Form["colorNombre"].FirstOrDefault()
+                              ?? "")
+                             .Trim();
+
+            var skuBase = (Request.Form["skuPre"].FirstOrDefault()
+                           ?? Request.Form["sku"].FirstOrDefault()
+                           ?? "")
+                          .Trim();
+
+            int stockIni = 0;
+            _ = int.TryParse((Request.Form["stockPre"].FirstOrDefault()
+                              ?? Request.Form["stock"].FirstOrDefault()), out stockIni);
+            if (stockIni < 0) stockIni = 0;
+
+            // Snapshot de tallas existentes ANTES de tocar nada (para saber cuáles se desmarcan)
+            int[] tallasExistentesAntes;
             try
             {
-                // 1) Tallas marcadas: acepta "tallasPre" y/o "tallas"
-                var tallasMarcadas = Request.Form["tallasPre"].Concat(Request.Form["tallas"])
-                    .Select(v => int.TryParse(v, out var x) ? x : 0)
-                    .Where(x => x > 0)
-                    .Distinct()
-                    .ToArray();
+                tallasExistentesAntes = (await _db.ConsultarAsync(
+                    "__raw_sql__",
+                    dr => dr.IsDBNull(0) ? 0 : dr.GetInt32(0),
+                    cmd =>
+                    {
+                        cmd.CommandType = CommandType.Text;
+                        cmd.CommandText = @"
+                    SELECT DISTINCT TallaID
+                    FROM dbo.gd_ProductoVariante
+                    WHERE ProductoID = @p AND TallaID IS NOT NULL;";
+                        cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
+                    }
+                )).Where(x => x > 0).ToArray();
+            }
+            catch
+            {
+                tallasExistentesAntes = Array.Empty<int>();
+            }
 
-                // 2) Campos opcionales
-                string colorTexto =
-                    (Request.Form["colorPreNombre"].FirstOrDefault()
-                     ?? Request.Form["colorNombre"].FirstOrDefault()
-                     ?? "").Trim();
+            // ================= 4) COLOR: solo actualizar si escribes algo =================
+            int? colorId = null;
 
-                string skuPre =
-                    (Request.Form["skuPre"].FirstOrDefault()
-                     ?? Request.Form["sku"].FirstOrDefault()
-                     ?? "").Trim();
-
-                int stockPre = 0;
-                int.TryParse((Request.Form["stockPre"].FirstOrDefault()
-                              ?? Request.Form["stock"].FirstOrDefault()), out stockPre);
-                if (stockPre < 0) stockPre = 0;
-
-                // 3) Si se escribió color en texto libre → obtener/crear
-                int? colorId = null;
-                if (!string.IsNullOrWhiteSpace(colorTexto))
+            if (!string.IsNullOrWhiteSpace(colorTexto))
+            {
+                try
                 {
+                    // 4.1 Obtener / crear el ColorID a partir del texto
                     colorId = await _db.EscalarAsync<int>("gd_sp_Color_ObtenerOCrear", cmd =>
                     {
                         cmd.Parameters.Add(new SqlParameter("@Nombre", SqlDbType.NVarChar, 80) { Value = colorTexto });
                     });
-                }
 
-                // 4) Crear variantes (una por talla) con SKU único
-                var creadas = 0;
+                    // 4.2 Actualizar TODAS las variantes existentes del producto a ese ColorID
+                    await _db.EjecutarAsync("__raw_sql__", cmd =>
+                    {
+                        cmd.CommandType = CommandType.Text;
+                        cmd.CommandText = @"
+                    UPDATE PV
+                    SET PV.ColorID = @c
+                    FROM dbo.gd_ProductoVariante PV
+                    WHERE PV.ProductoID = @p;";
+                        cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
+                        cmd.Parameters.Add(new SqlParameter("@c", SqlDbType.Int) { Value = colorId.Value });
+                    });
+                }
+                catch (Exception ex)
+                {
+                    TempData["Error"] = "No se pudo actualizar el color: " + ex.Message;
+                }
+            }
+            // Si colorTexto viene vacío: colorId se queda en null
+            // -> NO tocamos los colores existentes y las variantes nuevas se crean sin color.
+
+            // ================= 5) Crear variantes nuevas (solo si marcaste tallas) =================
+            try
+            {
                 if (tallasMarcadas.Length > 0)
                 {
                     foreach (var tallaId in tallasMarcadas)
                     {
-                        // Si teclearon un SKU base, hazlo único por talla (y color si aplica).
-                        // Si lo dejan vacío, el SP generará uno automáticamente.
-                        var sku = string.IsNullOrWhiteSpace(skuPre)
+                        var sku = string.IsNullOrWhiteSpace(skuBase)
                             ? null
-                            : $"{skuPre}-T{tallaId:00}" + (colorId.HasValue ? $"-C{colorId.Value:00}" : "");
+                            : $"{skuBase}-T{tallaId:00}" + (colorId.HasValue ? $"-C{colorId.Value:00}" : "");
 
                         await _db.EjecutarAsync("gd_sp_Variante_Guardar", cmd =>
                         {
@@ -272,43 +349,59 @@ namespace GraciaDivina.Areas.Admin.Controllers
                             cmd.Parameters.AddWithValue("@SKU", (object?)sku ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@TallaID", tallaId);
                             cmd.Parameters.AddWithValue("@ColorID", (object?)colorId ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("@Stock", stockPre);
+                            cmd.Parameters.AddWithValue("@Stock", stockIni);
                             cmd.Parameters.AddWithValue("@Activo", vm.Activo);
                         });
-
-                        creadas++;
                     }
 
-                    // 5) Si creaste al menos una talla, elimina el placeholder "ÚNICA"
-                    if (creadas > 0)
+                    // Eliminar la variante placeholder "ÚNICA" si existiera
+                    await _db.EjecutarAsync("__raw_sql__", cmd =>
                     {
-                        await _db.EjecutarAsync("__raw_sql__", cmd =>
-                        {
-                            cmd.CommandType = CommandType.Text;   // << importante
-                            cmd.CommandText = @"
-                                DELETE FROM dbo.gd_ProductoVariante
-                                WHERE ProductoID = @p
-                                  AND TallaID IS NULL
-                                  AND ColorID IS NULL;";
-                            cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
-                        });
-                    }
-
+                        cmd.CommandType = CommandType.Text;
+                        cmd.CommandText = @"
+                    DELETE FROM dbo.gd_ProductoVariante
+                    WHERE ProductoID = @p AND TallaID IS NULL AND ColorID IS NULL;";
+                        cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
+                    });
                 }
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "El producto se guardó, pero no se pudieron crear las variantes iniciales: " + ex.Message;
+                TempData["Error"] = (TempData["Error"] as string ?? "") +
+                                    " No se pudieron crear algunas variantes: " + ex.Message;
             }
-            // ========== FIN Variantes iniciales ==========
 
+            // ================= 6) Sincronizar tallas: eliminar las que se desmarcaron =================
+            try
+            {
+                var tallasAEliminar = tallasExistentesAntes.Except(tallasMarcadas).ToArray();
 
+                foreach (var tDel in tallasAEliminar)
+                {
+                    await _db.EjecutarAsync("__raw_sql__", cmd =>
+                    {
+                        cmd.CommandType = CommandType.Text;
+                        cmd.CommandText = @"
+                    DELETE FROM dbo.gd_ProductoVariante
+                    WHERE ProductoID = @p AND TallaID = @t;";
+                        cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
+                        cmd.Parameters.Add(new SqlParameter("@t", SqlDbType.Int) { Value = tDel });
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = (TempData["Error"] as string ?? "") +
+                                    " No se pudieron eliminar tallas desmarcadas: " + ex.Message;
+            }
 
+            // ================= 7) OK =================
             TempData["ok"] = "Producto guardado correctamente.";
             return RedirectToAction(nameof(Editar), new { id });
         }
 
-        // ========== FIN BLOQUE ==========
+
+
 
 
         // ================= Eliminar producto =================

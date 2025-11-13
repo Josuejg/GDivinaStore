@@ -61,18 +61,26 @@
         }
 
         @* Color (chips) *@
-        @if (colores.Any())
-        {
-            <div class="col-12">
-                <label class="form-label mb-1">Color</label>
-                <div id="chipsColor" class="d-flex flex-wrap gap-2">
-                    @foreach (var c in colores)
-                    {
-                        <button type="button" class="btn btn-outline-secondary btn-sm chip-color" data-color="@c">@c</button>
-                    }
-                </div>
+     @if (colores.Any())
+{
+    var coloresFiltrados = colores
+        .Where(c => !string.Equals(c.Trim(), "Sin color", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    if (coloresFiltrados.Any())
+    {
+        <div class="col-12">
+            <label class="form-label mb-1">Color</label>
+            <div id="chipsColor" class="d-flex flex-wrap gap-2">
+                @foreach (var c in coloresFiltrados)
+                {
+                    <button type="button" class="btn btn-outline-secondary btn-sm chip-color" data-color="@c">@c</button>
+                }
             </div>
-        }
+        </div>
+    }
+}
+
 
         <div class="col-6 col-md-2">
             <label class="form-label mb-1">Cant.</label>
