@@ -21,16 +21,16 @@
 
 <h1 class="h4 mb-3">Editar producto</h1>
 
-<!-- ====== ÚNICO FORMULARIO ====== -->
+<!-- ====== FORMULARIO PRINCIPAL (PRODUCTO + VARIANTES) ====== -->
 <form asp-area="Admin"
       asp-controller="Productos"
       asp-action="Guardar"
       method="post"
       enctype="multipart/form-data"
       class="row g-3">
+
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="ProductoID" />
-    <!-- Mantener imagen si no se sube una nueva -->
     <input type="hidden" asp-for="ImagenUrl" />
 
     <!-- Datos básicos -->
@@ -71,19 +71,19 @@
         <label class="form-label">Imagen principal (opcional)</label>
         <input asp-for="Imagen" type="file" class="form-control" accept="image/*" />
         <small class="text-muted">Si no eliges archivo, se conservará la imagen actual.</small>
+
         @if (!string.IsNullOrWhiteSpace(Model?.ImagenUrl))
         {
             <div class="mt-2">
-                <img src="@Model.ImagenUrl" alt="Imagen actual" style="max-height:120px;border:1px solid #ddd;border-radius:6px;padding:2px;">
+                <img src="@Model.ImagenUrl" alt="Imagen actual"
+                     style="max-height:120px;border:1px solid #ddd;border-radius:6px;padding:2px;">
             </div>
         }
     </div>
 
     <hr class="my-4" />
 
-    <!-- ===== Variantes iniciales (opcional) =====
-         REGLA: SOLO crea nuevas variantes si marcas al menos una talla.
-         Si dejas TODO en blanco (y sin tallas), NO modifica nada existente. -->
+    <!-- ===== Variantes iniciales ===== -->
     <h6 class="mb-2">Variantes iniciales (opcional)</h6>
     <p class="text-muted mb-2">
         Marca tallas y, si deseas, define color/stock/sku base. Al guardar, se crearán nuevas variantes.
@@ -92,22 +92,22 @@
 
     <div class="mb-2">
         <strong>Tallas disponibles</strong>
+
         <div class="d-flex gap-2 my-2">
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btnMarcarTallas">Marcar todas</button>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btnQuitarTallas">Quitar todas</button>
         </div>
 
         @{
-            // Tallas ya presentes en variantes para pre-marcar (inyectado desde el controlador)
             var marcadas = (IEnumerable<int>)(ViewBag.TallasMarcadas ?? Enumerable.Empty<int>());
         }
+
         <div class="row row-cols-2 row-cols-md-4 g-1">
             @foreach (SelectListItem t in (IEnumerable<SelectListItem>)ViewBag.Tallas)
             {
                 var isChecked = int.TryParse(t.Value, out var tid) && marcadas.Contains(tid);
                 <div class="col">
                     <div class="form-check">
-                        <!-- name=tallas  (el controlador ya lo procesa) -->
                         <input class="form-check-input"
                                type="checkbox"
                                name="tallas"
@@ -127,31 +127,50 @@
     <div class="row g-3">
         <div class="col-12 col-md-4">
             <label class="form-label">Color (opcional, texto libre)</label>
-            <!-- name=colorNombre -->
             <input name="colorNombre" class="form-control" placeholder="Ej.: Negro, Azul Marino">
         </div>
+
         <div class="col-12 col-md-4">
             <label class="form-label">SKU base (opcional)</label>
-            <!-- name=sku -->
             <input name="sku" class="form-control" placeholder="Si lo dejas vacío, el sistema genera">
         </div>
+
         <div class="col-12 col-md-4">
             <label class="form-label">Stock inicial (opcional)</label>
-            <!-- name=stock -->
             <input name="stock" type="number" min="0" class="form-control" value="0">
         </div>
     </div>
 
     <div class="col-12 mt-3">
         <button class="btn btn-primary" type="submit">Guardar</button>
-        <a asp-area="Admin" asp-controller="Productos" asp-action="Index" class="btn btn-outline-secondary">Volver</a>
+        <a asp-area="Admin" asp-controller="Productos" asp-action="Index"
+           class="btn btn-outline-secondary">Volver</a>
     </div>
 </form>
+
+<!-- ====== GALERÍA DE IMÁGENES (FUERA DEL FORM PRINCIPAL) ====== -->
+<h5 class="mt-4 mb-3">Galería de imágenes</h5>
+
+<form asp-area="Admin"
+      asp-controller="Productos"
+      asp-action="SubirImagen"
+      method="post"
+      enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="productoId" value="@Model.ProductoID" />
+    <div class="input-group mb-3">
+        <input type="file" name="imagen" class="form-control" accept="image/*" />
+        <button class="btn btn-primary" type="submit">Subir</button>
+    </div>
+</form>
+
+<div id="galeria-imagenes" class="mb-4">
+    @await Html.PartialAsync("_ProductoImagenes", ViewBag.Imagenes as IEnumerable<GraciaDivina.Models.ProductoImagen>)
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Marcado rápido de tallas
         document.getElementById('btnMarcarTallas')?.addEventListener('click', () => {
             document.querySelectorAll('input[name="tallas"]').forEach(cb => cb.checked = true);
         });

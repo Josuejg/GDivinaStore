@@ -59,19 +59,48 @@ namespace GraciaDivina.Areas.Admin.Controllers
                     {
                         VarianteID = dr.GetInt32(dr.GetOrdinal("VarianteID")),
                         SKU = dr.GetString(dr.GetOrdinal("SKU")),
-                        Stock = dr.IsDBNull(dr.GetOrdinal("Stock")) ? 0 : dr.GetInt32(dr.GetOrdinal("Stock")),
-                        TallaID = dr.IsDBNull(dr.GetOrdinal("TallaID")) ? (int?)null : dr.GetInt32(dr.GetOrdinal("TallaID")),
-                        Talla = dr.IsDBNull(dr.GetOrdinal("Talla")) ? null : dr.GetString(dr.GetOrdinal("Talla")),
-                        ColorID = dr.IsDBNull(dr.GetOrdinal("ColorID")) ? (int?)null : dr.GetInt32(dr.GetOrdinal("ColorID")),
-                        Color = dr.IsDBNull(dr.GetOrdinal("Color")) ? null : dr.GetString(dr.GetOrdinal("Color"))
+                        Stock = dr.IsDBNull(dr.GetOrdinal("Stock"))
+                                    ? 0
+                                    : dr.GetInt32(dr.GetOrdinal("Stock")),
+
+                        TallaID = dr.IsDBNull(dr.GetOrdinal("TallaID"))
+                                    ? (int?)null
+                                    : dr.GetInt32(dr.GetOrdinal("TallaID")),
+                        Talla = dr.IsDBNull(dr.GetOrdinal("Talla"))
+                                    ? null
+                                    : dr.GetString(dr.GetOrdinal("Talla")),
+
+                        ColorID = dr.IsDBNull(dr.GetOrdinal("ColorID"))
+                                    ? (int?)null
+                                    : dr.GetInt32(dr.GetOrdinal("ColorID")),
+                        Color = dr.IsDBNull(dr.GetOrdinal("Color"))
+                                    ? null
+                                    : dr.GetString(dr.GetOrdinal("Color")),
+
+                        // 🔹 NUEVO: imagen principal del producto
+                        ImagenUrl = dr.IsDBNull(dr.GetOrdinal("UrlImagen"))
+                                    ? null
+                                    : dr.GetString(dr.GetOrdinal("UrlImagen")),
+
+                        // 🔹 NUEVO: estado Activo de la variante
+                        Activo = dr.IsDBNull(dr.GetOrdinal("Activo"))
+                                    ? (bool?)null
+                                    : dr.GetBoolean(dr.GetOrdinal("Activo"))
                     },
-                    cmd => cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = productoId.Value })
+                    cmd =>
+                    {
+                        cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = productoId.Value });
+                        // En Admin queremos ver TODAS las variantes (activas e inactivas)
+                        cmd.Parameters.Add(new SqlParameter("@SoloActivas", SqlDbType.Bit) { Value = 0 });
+                        cmd.Parameters.Add(new SqlParameter("@SoloConStock", SqlDbType.Bit) { Value = 0 });
+                    }
                 );
             }
             else
             {
                 ViewBag.Variantes = Enumerable.Empty<ProductVariantVM>();
             }
+
         }
 
         // ================= Listado =================
@@ -155,27 +184,47 @@ namespace GraciaDivina.Areas.Admin.Controllers
 
             if (vm is null) return NotFound();
 
+            // Combos
             ViewBag.Categorias = await CargarCategoriasAsync();
             ViewBag.Tallas = await CargarTallasAsync();
             ViewBag.Colores = await CargarColoresAsync();
 
-            // ==================== Tallas ya presentes en variantes ====================
+            // Tallas ya presentes en variantes
             ViewBag.TallasMarcadas = await _db.ConsultarAsync(
                 "__raw_sql__",
                 dr => dr.IsDBNull(0) ? 0 : dr.GetInt32(0),
                 cmd =>
                 {
-                    cmd.CommandType = System.Data.CommandType.Text;
+                    cmd.CommandType = CommandType.Text;
                     cmd.CommandText = @"
                         SELECT DISTINCT TallaID
                         FROM dbo.gd_ProductoVariante
-                        WHERE ProductoID = @p AND TallaID IS NOT NULL;";
-                    cmd.Parameters.Add(new SqlParameter("@p", System.Data.SqlDbType.Int) { Value = id });
+                       WHERE ProductoID = @p
+                        AND TallaID IS NOT NULL
+                        AND Activo = 1;";
+                    cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
                 }
             );
 
+            // 🔹 NUEVO: imágenes de la galería
+            var imagenes = await _db.ConsultarAsync(
+                "gd_sp_ProductoImagen_Listar",
+                dr => new ProductoImagen
+                {
+                    ImagenID = dr.GetInt32(dr.GetOrdinal("ImagenID")),
+                    ProductoID = dr.GetInt32(dr.GetOrdinal("ProductoID")),
+                    UrlImagen = dr.GetString(dr.GetOrdinal("UrlImagen")),
+                    EsPrincipal = dr.GetBoolean(dr.GetOrdinal("EsPrincipal"))
+                },
+                cmd => cmd.Parameters.AddWithValue("@ProductoID", id)
+            );
+
+            ViewBag.Imagenes = imagenes;
+            ViewBag.ProductoID = id;
+
             return View("Editar", vm);
         }
+
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> ActualizarVariante(int varianteId, string? sku, int? tallaId, int? colorId, bool activo)
@@ -286,9 +335,11 @@ namespace GraciaDivina.Areas.Admin.Controllers
                     {
                         cmd.CommandType = CommandType.Text;
                         cmd.CommandText = @"
-                    SELECT DISTINCT TallaID
-                    FROM dbo.gd_ProductoVariante
-                    WHERE ProductoID = @p AND TallaID IS NOT NULL;";
+                            SELECT DISTINCT TallaID
+                            FROM dbo.gd_ProductoVariante
+                             WHERE ProductoID = @p
+                              AND TallaID IS NOT NULL
+                              AND Activo = 1;";
                         cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
                     }
                 )).Where(x => x > 0).ToArray();
@@ -298,37 +349,51 @@ namespace GraciaDivina.Areas.Admin.Controllers
                 tallasExistentesAntes = Array.Empty<int>();
             }
 
-            // ================= 4) COLOR: solo actualizar si escribes algo =================
+            // ================= 4) COLOR =================
+            // Objetivo:
+            // - Si escribes colorTexto -> obtener/crear ese ColorID.
+            // - Si NO escribes colorTexto -> reutilizar el color que ya tenga el producto.
+            // - NO tocar los colores de variantes existentes para evitar conflictos con el índice único.
+
             int? colorId = null;
 
-            if (!string.IsNullOrWhiteSpace(colorTexto))
+            try
             {
-                try
+                // 4.1 Si el admin escribió un color, obtener/crear su ID
+                if (!string.IsNullOrWhiteSpace(colorTexto))
                 {
-                    // 4.1 Obtener / crear el ColorID a partir del texto
                     colorId = await _db.EscalarAsync<int>("gd_sp_Color_ObtenerOCrear", cmd =>
                     {
                         cmd.Parameters.Add(new SqlParameter("@Nombre", SqlDbType.NVarChar, 80) { Value = colorTexto });
                     });
-
-                    // 4.2 Actualizar TODAS las variantes existentes del producto a ese ColorID
-                    await _db.EjecutarAsync("__raw_sql__", cmd =>
-                    {
-                        cmd.CommandType = CommandType.Text;
-                        cmd.CommandText = @"
-                    UPDATE PV
-                    SET PV.ColorID = @c
-                    FROM dbo.gd_ProductoVariante PV
-                    WHERE PV.ProductoID = @p;";
-                        cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
-                        cmd.Parameters.Add(new SqlParameter("@c", SqlDbType.Int) { Value = colorId.Value });
-                    });
                 }
-                catch (Exception ex)
+
+                // 4.2 Si todavía no tenemos colorId, intentar reutilizar uno existente del producto
+                if (colorId == null)
                 {
-                    TempData["Error"] = "No se pudo actualizar el color: " + ex.Message;
+                    colorId = await _db.ConsultarUnoAsync(
+                        "__raw_sql__",
+                        dr => dr.IsDBNull(0) ? (int?)null : dr.GetInt32(0),
+                        cmd =>
+                        {
+                            cmd.CommandType = CommandType.Text;
+                            cmd.CommandText = @"
+                                SELECT TOP(1) ColorID
+                                FROM dbo.gd_ProductoVariante
+                                WHERE ProductoID = @p AND ColorID IS NOT NULL
+                                ORDER BY VarianteID;";
+                            cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
+                        }
+                    );
                 }
             }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "No se pudo determinar el color: " + ex.Message;
+            }
+            // OJO: ya NO hay ningún UPDATE aquí que toque a todas las variantes
+
+
             // Si colorTexto viene vacío: colorId se queda en null
             // -> NO tocamos los colores existentes y las variantes nuevas se crean sin color.
 
@@ -359,31 +424,59 @@ namespace GraciaDivina.Areas.Admin.Controllers
                     {
                         cmd.CommandType = CommandType.Text;
                         cmd.CommandText = @"
-                    DELETE FROM dbo.gd_ProductoVariante
-                    WHERE ProductoID = @p AND TallaID IS NULL AND ColorID IS NULL;";
+                            DELETE FROM dbo.gd_ProductoVariante
+                            WHERE ProductoID = @p AND TallaID IS NULL AND ColorID IS NULL;";
                         cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
                     });
                 }
+                // Si NO se escribió color nuevo, intentar reutilizar el color existente del producto
+                if (colorId == null && string.IsNullOrWhiteSpace(colorTexto))
+                {
+                    try
+                    {
+                        colorId = await _db.ConsultarUnoAsync(
+                            "__raw_sql__",
+                            dr => dr.IsDBNull(0) ? (int?)null : dr.GetInt32(0),
+                            cmd =>
+                            {
+                                cmd.CommandType = CommandType.Text;
+                                cmd.CommandText = @"
+                                    SELECT TOP(1) ColorID
+                                    FROM dbo.gd_ProductoVariante
+                                    WHERE ProductoID = @p AND ColorID IS NOT NULL
+                                    ORDER BY VarianteID;";
+                                cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
+                            }
+                        );
+                    }
+                    catch
+                    {
+                        colorId = null;
+                    }
+                }
+
             }
             catch (Exception ex)
             {
                 TempData["Error"] = (TempData["Error"] as string ?? "") +
                                     " No se pudieron crear algunas variantes: " + ex.Message;
             }
-
-            // ================= 6) Sincronizar tallas: eliminar las que se desmarcaron =================
+      
+            // ================= 6) Sincronizar tallas: inactivar las que se desmarcaron =================
             try
             {
-                var tallasAEliminar = tallasExistentesAntes.Except(tallasMarcadas).ToArray();
+                var tallasAInactivar = tallasExistentesAntes.Except(tallasMarcadas).ToArray();
 
-                foreach (var tDel in tallasAEliminar)
+                foreach (var tDel in tallasAInactivar)
                 {
                     await _db.EjecutarAsync("__raw_sql__", cmd =>
                     {
                         cmd.CommandType = CommandType.Text;
                         cmd.CommandText = @"
-                    DELETE FROM dbo.gd_ProductoVariante
-                    WHERE ProductoID = @p AND TallaID = @t;";
+                UPDATE dbo.gd_ProductoVariante
+                SET Activo = 0,
+                    Stock  = 0
+                WHERE ProductoID = @p AND TallaID = @t;";
                         cmd.Parameters.Add(new SqlParameter("@p", SqlDbType.Int) { Value = id });
                         cmd.Parameters.Add(new SqlParameter("@t", SqlDbType.Int) { Value = tDel });
                     });
@@ -392,7 +485,7 @@ namespace GraciaDivina.Areas.Admin.Controllers
             catch (Exception ex)
             {
                 TempData["Error"] = (TempData["Error"] as string ?? "") +
-                                    " No se pudieron eliminar tallas desmarcadas: " + ex.Message;
+                                    " No se pudieron inactivar tallas desmarcadas: " + ex.Message;
             }
 
             // ================= 7) OK =================
@@ -446,16 +539,44 @@ namespace GraciaDivina.Areas.Admin.Controllers
                 {
                     VarianteID = dr.GetInt32(dr.GetOrdinal("VarianteID")),
                     SKU = dr.GetString(dr.GetOrdinal("SKU")),
-                    Stock = dr.IsDBNull(dr.GetOrdinal("Stock")) ? 0 : dr.GetInt32(dr.GetOrdinal("Stock")),
-                    Talla = dr.IsDBNull(dr.GetOrdinal("Talla")) ? null : dr.GetString(dr.GetOrdinal("Talla")),
-                    Color = dr.IsDBNull(dr.GetOrdinal("Color")) ? null : dr.GetString(dr.GetOrdinal("Color"))
+                    Stock = dr.IsDBNull(dr.GetOrdinal("Stock"))
+                                ? 0
+                                : dr.GetInt32(dr.GetOrdinal("Stock")),
+
+                    TallaID = dr.ColumnExists("TallaID") && !dr.IsDBNull(dr.GetOrdinal("TallaID"))
+                                ? dr.GetInt32(dr.GetOrdinal("TallaID"))
+                                : (int?)null,
+                    Talla = dr.ColumnExists("Talla") && !dr.IsDBNull(dr.GetOrdinal("Talla"))
+                                ? dr.GetString(dr.GetOrdinal("Talla"))
+                                : null,
+
+                    ColorID = dr.ColumnExists("ColorID") && !dr.IsDBNull(dr.GetOrdinal("ColorID"))
+                                ? dr.GetInt32(dr.GetOrdinal("ColorID"))
+                                : (int?)null,
+                    Color = dr.ColumnExists("Color") && !dr.IsDBNull(dr.GetOrdinal("Color"))
+                                ? dr.GetString(dr.GetOrdinal("Color"))
+                                : null,
+
+                    ImagenUrl = dr.ColumnExists("UrlImagen") && !dr.IsDBNull(dr.GetOrdinal("UrlImagen"))
+                                ? dr.GetString(dr.GetOrdinal("UrlImagen"))
+                                : null,
+
+                    Activo = dr.ColumnExists("Activo") && !dr.IsDBNull(dr.GetOrdinal("Activo"))
+                                ? dr.GetBoolean(dr.GetOrdinal("Activo"))
+                                : (bool?)null
                 },
-                cmd => cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = id })
+                cmd =>
+                {
+                    cmd.Parameters.Add(new SqlParameter("@ProductoID", SqlDbType.Int) { Value = id });
+                    cmd.Parameters.Add(new SqlParameter("@SoloActivas", SqlDbType.Bit) { Value = 0 });
+                    cmd.Parameters.Add(new SqlParameter("@SoloConStock", SqlDbType.Bit) { Value = 0 });
+                }
             );
 
             ViewBag.ProductoID = id;
             return PartialView("_VariantesTable", variantes);
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -566,5 +687,82 @@ namespace GraciaDivina.Areas.Admin.Controllers
             TempData["ok"] = "Variantes generadas correctamente.";
             return RedirectToAction(nameof(Editar), new { id = productoId });
         }
+        // GET: carga la lista de imágenes del producto (para un partial)
+        [HttpGet]
+        public async Task<IActionResult> Imagenes(int productoId)
+        {
+            var imagenes = await _db.ConsultarAsync(
+                "gd_sp_ProductoImagen_Listar",
+                dr => new ProductoImagen
+                {
+                    ImagenID = dr.GetInt32(dr.GetOrdinal("ImagenID")),
+                    ProductoID = dr.GetInt32(dr.GetOrdinal("ProductoID")),
+                    UrlImagen = dr.GetString(dr.GetOrdinal("UrlImagen")),
+                    EsPrincipal = dr.GetBoolean(dr.GetOrdinal("EsPrincipal"))
+                },
+                cmd => cmd.Parameters.AddWithValue("@ProductoID", productoId)
+            );
+
+            ViewBag.ProductoID = productoId;
+            return PartialView("_ProductoImagenes", imagenes);
+        }
+        // POST: subir nueva imagen
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubirImagen(int productoId, IFormFile imagen, bool esPrincipal = false)
+        {
+            if (imagen is { Length: > 0 })
+            {
+                var uploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "img", "products");
+                Directory.CreateDirectory(uploads);
+
+                var fileName = $"{Guid.NewGuid():N}{Path.GetExtension(imagen.FileName)}";
+                var fullPath = Path.Combine(uploads, fileName);
+
+                using (var fs = new FileStream(fullPath, FileMode.Create))
+                {
+                    await imagen.CopyToAsync(fs);
+                }
+
+                var url = $"/img/products/{fileName}";
+
+                await _db.EjecutarAsync("gd_sp_ProductoImagen_Agregar", cmd =>
+                {
+                    cmd.Parameters.AddWithValue("@ProductoID", productoId);
+                    cmd.Parameters.AddWithValue("@UrlImagen", url);
+                    cmd.Parameters.AddWithValue("@EsPrincipal", esPrincipal);
+                });
+            }
+
+            return RedirectToAction(nameof(Editar), new { id = productoId });
+        }
+        // POST: eliminar imagen
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EliminarImagen(int productoId, int imagenId)
+        {
+            await _db.EjecutarAsync("gd_sp_ProductoImagen_Eliminar", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@ProductoID", productoId);
+                cmd.Parameters.AddWithValue("@ImagenID", imagenId);
+            });
+
+            return RedirectToAction(nameof(Editar), new { id = productoId });
+        }
+        // POST: marcar como principal
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarcarPrincipal(int productoId, int imagenId)
+        {
+            await _db.EjecutarAsync("gd_sp_ProductoImagen_MarcarPrincipal", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@ProductoID", productoId);
+                cmd.Parameters.AddWithValue("@ImagenID", imagenId);
+            });
+
+            return RedirectToAction(nameof(Editar), new { id = productoId });
+        }
+
+
     }
 }

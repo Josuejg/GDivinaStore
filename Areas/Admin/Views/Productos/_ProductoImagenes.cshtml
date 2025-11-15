@@ -1,0 +1,45 @@
+﻿@model IEnumerable<GraciaDivina.Models.ProductoImagen>
+@{
+    var productoId = (int)ViewBag.ProductoID;
+}
+
+<div class="row g-3">
+    @foreach (var img in Model)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm">
+                <img src="@img.UrlImagen" class="card-img-top" alt="" style="height:160px; object-fit:cover;">
+                <div class="card-body p-2 text-center">
+
+                    @if (img.EsPrincipal)
+                    {
+                        <span class="badge bg-success mb-2">Principal</span>
+                    }
+
+                    <div class="d-flex justify-content-center gap-2">
+
+                        <form asp-action="MarcarPrincipal" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="productoId" value="@productoId" />
+                            <input type="hidden" name="imagenId" value="@img.ImagenID" />
+                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                Principal
+                            </button>
+                        </form>
+
+                        <form asp-action="EliminarImagen" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="productoId" value="@productoId" />
+                            <input type="hidden" name="imagenId" value="@img.ImagenID" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                Eliminar
+                            </button>
+                        </form>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    }
+</div>
